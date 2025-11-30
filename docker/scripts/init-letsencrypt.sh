@@ -34,7 +34,24 @@ mkdir -p ./docker/nginx/certbot/conf
 
 # Start nginx with template configuration
 echo "Starting nginx with template configuration..."
-docker-compose up -d nginx
+
+# Remove any old/stale containers that might cause issues
+echo "Cleaning up any stale containers..."
+docker-compose down 2>/dev/null || true
+
+# Remove containers that might be in a bad state
+docker rm -f school_api school_client school_nginx 2>/dev/null || true
+
+# Check if images exist, if not, rebuild them
+echo "Checking if Docker images exist..."
+if ! docker images | grep -qE "lubwe.*api|lubwe.*client" 2>/dev/null; then
+    echo "Docker images not found. Building images first..."
+    docker-compose build
+fi
+
+# Start all services fresh
+echo "Starting all services..."
+docker-compose up -d --build
 
 # Wait for nginx to be ready
 echo "Waiting for nginx to be ready..."
@@ -42,16 +59,17 @@ sleep 5
 
 # Request certificate
 echo "Requesting SSL certificate from Let's Encrypt..."
+CERT_EXIT_CODE=0
 docker-compose run --rm certbot certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --email $EMAIL \
     --agree-tos \
     --no-eff-email \
-    -d $DOMAIN
+    -d $DOMAIN || CERT_EXIT_CODE=$?
 
-# Check if certificate was obtained
-if [ -f "./docker/nginx/certbot/conf/live/$DOMAIN/fullchain.pem" ]; then
+# Check if certificate was obtained (certbot exits with 0 on success)
+if [ $CERT_EXIT_CODE -eq 0 ]; then
     echo "Certificate obtained successfully!"
     echo "Updating nginx configuration..."
     
