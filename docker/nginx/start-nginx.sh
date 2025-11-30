@@ -1,54 +1,77 @@
 #!/bin/sh
-# Nginx startup script with SSL certificate detection and domain replacement
+# Nginx startup script that handles SSL certificates conditionally
 
-# API and client are guaranteed to be healthy due to depends_on
-echo '[DEBUG] Starting nginx (dependencies are ready)...'
+echo "Checking for SSL certificates..."
 
-if [ ! -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ]; then
-  echo 'SSL certificate not found, using HTTP template'
-  cp /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf
-  sed -i 's|api_backend|api:8080|g; s|client_frontend|client:80|g' /etc/nginx/conf.d/default.conf
-else
-  echo 'SSL certificate found, using HTTPS configuration'
-  DOMAIN_VAL=${DOMAIN}
-  echo "[DEBUG] DOMAIN_VAL is set to: [$DOMAIN_VAL]"
-  if [ -z "$DOMAIN_VAL" ] || [ "$DOMAIN_VAL" = "localhost" ] || [ "$DOMAIN_VAL" = "" ]; then
-    echo 'ERROR: DOMAIN environment variable is not set or is invalid!'
-    echo 'Falling back to HTTP configuration...'
+# Check if SSL certificates exist
+if [ -f /etc/nginx/ssl/domain.cert.pem ] && [ -f /etc/nginx/ssl/private.key.pem ]; then
+    echo "SSL certificates found - using HTTPS configuration"
+    # Copy the template (which has SSL config) to the conf.d directory
     cp /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf
-    sed -i 's|api_backend|api:8080|g; s|client_frontend|client:80|g' /etc/nginx/conf.d/default.conf
-  else
-    echo "[DEBUG] Copying HTTPS config and replacing domain: $DOMAIN_VAL" >&2
-    cp /etc/nginx/nginx-https.conf /etc/nginx/conf.d/default.conf
-    # Use # as delimiter to avoid issues with domain containing special chars
-    sed -i "s#REPLACE_WITH_DOMAIN#$DOMAIN_VAL#g" /etc/nginx/conf.d/default.conf
-    echo "[DEBUG] Replacement complete. Verifying..." >&2
-    # Verify replacement worked
-    if grep -q "REPLACE_WITH_DOMAIN" /etc/nginx/conf.d/default.conf; then
-      echo "[ERROR] Replacement failed! REPLACE_WITH_DOMAIN still found in config" >&2
-      echo "[DEBUG] Showing lines with REPLACE_WITH_DOMAIN:" >&2
-      grep -n "REPLACE_WITH_DOMAIN" /etc/nginx/conf.d/default.conf >&2
-      exit 1
+    # Test the configuration
+    nginx -t
+    if [ $? -eq 0 ]; then
+        echo "Nginx configuration test passed - starting with SSL"
+        nginx -g 'daemon off;'
+    else
+        echo "ERROR: Nginx configuration test failed!"
+        exit 1
     fi
-    echo "[DEBUG] Replacement successful. Showing key config lines:" >&2
-    grep -E "server_name|ssl_certificate" /etc/nginx/conf.d/default.conf | head -3 >&2
-    # Also check for any variable-like syntax that might cause issues
-    if grep -E '\$\{[^}]*domain|\$domain' /etc/nginx/conf.d/default.conf; then
-      echo "[ERROR] Found variable-like syntax in config that might cause issues!" >&2
-      grep -n -E '\$\{[^}]*domain|\$domain' /etc/nginx/conf.d/default.conf >&2
-    fi
-  fi
-fi
-
-echo '[DEBUG] Testing nginx configuration...' >&2
-nginx -t 2>&1 | tee /dev/stderr
-if [ $? -eq 0 ]; then
-  echo '[DEBUG] Nginx config test passed' >&2
-  nginx -g 'daemon off;'
 else
-  echo '[ERROR] Nginx config test failed!' >&2
-  echo '[DEBUG] Showing config file (first 50 lines):' >&2
-  head -50 /etc/nginx/conf.d/default.conf >&2
-  exit 1
-fi
+    echo "SSL certificates not found - using HTTP-only configuration"
+    # Create HTTP-only configuration
+    cat > /etc/nginx/conf.d/default.conf << 'EOF'
+# HTTP-only configuration (SSL certificates not found)
 
+upstream api_backend {
+    server api:8080;
+    keepalive 32;
+}
+
+upstream client_frontend {
+    server client:80;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    # API proxy
+    location /api {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Serve Vue client
+    location / {
+        proxy_pass http://client_frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Health check endpoint
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    nginx -t
+    if [ $? -eq 0 ]; then
+        echo "Nginx configuration test passed - starting HTTP-only"
+        nginx -g 'daemon off;'
+    else
+        echo "ERROR: Nginx configuration test failed!"
+        exit 1
+    fi
+fi
