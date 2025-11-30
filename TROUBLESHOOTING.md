@@ -169,38 +169,155 @@ sudo systemctl stop apache2  # or httpd, nginx, etc.
    npm run build
    ```
 
+### DNS Issues
+
+**Symptoms:**
+- Domain shows parking page instead of application
+- `Host not found` errors
+- DNS resolution timeout
+
+**Solution:**
+
+1. **Configure DNS in your domain registrar (e.g., Porkbun):**
+   - Add A record: `@` → Your VPS IP
+   - Optional: Add `www` → Your VPS IP
+   - Wait 15-30 minutes for propagation
+
+2. **Fix DNS resolution on VPS:**
+   ```bash
+   # Use public DNS servers
+   echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+   echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf
+   ```
+
+3. **Verify DNS:**
+   ```bash
+   host yourdomain.com
+   # Should show your VPS IP
+   ```
+
 ### SSL Certificate Issues
 
 **Symptoms:**
 - Certbot fails to obtain certificate
 - `Failed to obtain certificate`
+- Certificate exists but HTTPS doesn't work
 
 **Solution:**
-1. **Verify domain DNS points to your server:**
+
+1. **Verify DNS is working:**
    ```bash
-   dig yourdomain.com
-   nslookup yourdomain.com
+   host yourdomain.com
+   # Should show your VPS IP
    ```
 
-2. **Check certbot logs:**
+2. **Check port 80 is accessible:**
    ```bash
-   docker-compose logs certbot
+   sudo ufw status | grep 80
+   # Should show: 80/tcp ALLOW
    ```
 
-3. **Verify port 80 is accessible:**
+3. **Request certificate manually:**
    ```bash
-   curl -I http://yourdomain.com/.well-known/acme-challenge/test
-   ```
-
-4. **Manual certificate request:**
-   ```bash
-   docker-compose run --rm certbot certonly \
-       --webroot \
+   docker-compose exec certbot certbot certonly --webroot \
        --webroot-path=/var/www/certbot \
        --email your-email@example.com \
        --agree-tos \
        --no-eff-email \
        -d yourdomain.com
+   ```
+
+4. **If webroot fails, use standalone:**
+   ```bash
+   docker-compose stop nginx
+   docker-compose run --rm --service-ports certbot certbot certonly --standalone \
+       --email your-email@example.com \
+       --agree-tos \
+       --no-eff-email \
+       -d yourdomain.com
+   docker-compose start nginx
+   ```
+
+5. **After certificate is obtained:**
+   ```bash
+   docker-compose restart nginx
+   ```
+
+### HTTPS Not Working
+
+**Symptoms:**
+- `Failed to connect to server port 443`
+- Certificate exists but HTTPS fails
+- nginx not listening on port 443
+
+**Solution:**
+
+1. **Check port 443 is open:**
+   ```bash
+   sudo ufw allow 443/tcp
+   sudo ufw status | grep 443
+   ```
+
+2. **Check cloud provider firewall:**
+   - **DigitalOcean:** Networking → Firewalls → Add rule (TCP 443)
+   - **AWS:** Security Groups → Add inbound rule (HTTPS 443)
+   - **Azure:** Network Security Groups → Add rule (Port 443)
+
+3. **Verify nginx is listening:**
+   ```bash
+   docker-compose exec nginx ss -tulpn | grep 443
+   # Should show nginx listening
+   ```
+
+4. **Check nginx configuration:**
+   ```bash
+   docker-compose exec nginx cat /etc/nginx/conf.d/default.conf | grep -A 3 "listen 443"
+   # Should show HTTPS server block
+   ```
+
+5. **Test from inside container:**
+   ```bash
+   docker-compose exec nginx curl -I https://localhost
+   # If this works, it's a firewall issue
+   ```
+
+### nginx Not Running or Stopping
+
+**Symptoms:**
+- `service "nginx" is not running`
+- nginx container exits immediately
+- Configuration errors
+
+**Solution:**
+
+1. **Check logs:**
+   ```bash
+   docker-compose logs nginx | tail -50
+   docker-compose logs nginx | grep -i error
+   ```
+
+2. **Test nginx configuration:**
+   ```bash
+   docker-compose run --rm nginx nginx -t
+   ```
+
+3. **Check certificate files:**
+   ```bash
+   docker-compose exec nginx ls -la /etc/letsencrypt/live/yourdomain.com/
+   ```
+
+4. **Restart nginx:**
+   ```bash
+   docker-compose restart nginx
+   # Or full restart
+   docker-compose down
+   docker-compose up -d
+   ```
+
+5. **Verify domain replacement in config:**
+   ```bash
+   docker-compose exec nginx cat /etc/nginx/conf.d/default.conf | grep server_name
+   # Should show your domain, not REPLACE_WITH_DOMAIN
    ```
 
 ### CORS Issues

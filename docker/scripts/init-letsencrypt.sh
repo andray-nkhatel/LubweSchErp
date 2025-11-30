@@ -1,16 +1,26 @@
 #!/bin/bash
 
 # Script to initialize Let's Encrypt certificates
-# Usage: ./init-letsencrypt.sh yourdomain.com your-email@example.com
+# Usage: ./init-letsencrypt.sh [domain] [email]
+# If domain/email are not provided, they will be read from .env file
 
-if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Usage: $0 <domain> <email>"
+# Load .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Use command-line arguments if provided, otherwise use .env values
+DOMAIN=${1:-$DOMAIN}
+EMAIL=${2:-$EMAIL}
+
+# Validate required variables
+if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
+    echo "Error: DOMAIN and EMAIL must be provided"
+    echo "Usage: $0 [domain] [email]"
+    echo "Or set DOMAIN and EMAIL in .env file"
     echo "Example: $0 example.com admin@example.com"
     exit 1
 fi
-
-DOMAIN=$1
-EMAIL=$2
 
 echo "Setting up Let's Encrypt for domain: $DOMAIN"
 echo "Email: $EMAIL"
