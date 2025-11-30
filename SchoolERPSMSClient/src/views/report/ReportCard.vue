@@ -1,0 +1,1046 @@
+<template>
+    <div class="report-card-container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-2xl font-bold mb-4">Report Card Management</h2>
+
+
+
+
+                    <TabPanel header="View Report Cards">
+                        <div class="p-4">
+                            <!-- Student Report Cards Viewer -->
+                            <div class="mb-4">
+                                <h3 class="text-lg font-semibold mb-3">Student Report Cards</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div class="field">
+                                        <label for="view-student-select" class="block text-sm font-medium mb-2">Select Student</label>
+                                        <Dropdown
+                                            id="view-student-select"
+                                            v-model="viewSelectedStudent"
+                                            :options="students"
+                                            optionLabel="fullName"
+                                            optionValue="id"
+                                            placeholder="Select Student to View Report Cards"
+                                            class="w-full"
+                                            :loading="studentsLoading"
+                                            filter
+                                            filterPlaceholder="Search for a student..."
+                                            filterMatchMode="contains"
+                                            :filterFields="['fullName', 'firstName', 'lastName', 'gradeName']"
+                                        >
+                                            <template #option="slotProps">
+                                                <div class="flex justify-between items-center w-full">
+                                                    <div class="flex flex-col">
+                                                        <span class="font-medium">{{ slotProps.option.fullName }}</span>
+                                                        <small class="text-gray-500">{{ slotProps.option.gradeName }}</small>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </Dropdown>
+                                    </div>
+                                    <div class="field">
+                                        <label class="block text-sm font-medium mb-2">&nbsp;</label>
+                                        <Button @click="loadStudentReportCards" :loading="loadingReportCards" :disabled="!viewSelectedStudent" class="w-full" severity="secondary"> Load Report Cards </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Add search bar above report cards table -->
+                                <div class="mb-2 flex items-center gap-2">
+                                    <input
+                                        v-model="reportCardSearchQuery"
+                                        type="text"
+                                        placeholder="Search report cards..."
+                                        class="p-inputtext p-component w-full"
+                                        style="max-width: 350px;"
+                                    />
+                                </div>
+
+                                <!-- Report Cards DataTable -->
+                                <div v-if="!isMobile">
+                                  <DataTable
+                                      :value="filteredStudentReportCards"
+                                      :loading="loadingReportCards"
+                                      stripedRows
+                                      class="p-datatable-sm"
+                                      :emptyMessage="viewSelectedStudent ? 'No report cards found for this student.' : 'Please select a student to view report cards.'"
+                                  >
+                                      <Column field="id" header="ID" sortable style="width: 80px" />
+                                      <Column field="academicYear" header="Academic Year" sortable style="width: 120px" />
+                                      <Column field="term" header="Term" sortable style="width: 80px" />
+                                      <Column field="generatedAt" header="Generated Date" sortable>
+                                          <template #body="{ data }">
+                                              {{ formatDate(data.generatedAt) }}
+                                          </template>
+                                      </Column>
+                                      <Column field="generatedByName" header="Generated By" sortable />
+                                      <Column style="width: 180px; text-align: right;" headerStyle="text-align: right;">
+                                          <template #header>
+                                              <span v-if="!isMobile">Actions</span>
+                                          </template>
+                                          <template #body="{ data }">
+                                              <Button @click="openPdfModal(data.id, data.studentName)" size="small" severity="secondary" outlined>
+                                                  <i class="pi pi-eye mr-1"></i>
+                                                  View <span v-if="data.studentName">({{ data.studentName }})</span>
+                                              </Button>
+                                          </template>
+                                      </Column>
+                                  </DataTable>
+                                </div>
+                                <div v-else class="flex flex-col gap-4 mt-2">
+                                  <div v-for="card in filteredStudentReportCards" :key="card.id" class="rounded-lg shadow-md border border-gray-200 bg-white p-4 flex flex-col">
+                                    <div class="mb-2">
+                                      <span class="block text-xs text-gray-500 font-medium">Student</span>
+                                      <span class="block text-base font-semibold text-gray-900">{{ card.studentName || 'N/A' }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                      <span class="block text-xs text-gray-500 font-medium">Academic Year</span>
+                                      <span class="block text-base text-gray-800">{{ card.academicYear }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                      <span class="block text-xs text-gray-500 font-medium">Term</span>
+                                      <span class="block text-base text-gray-800">{{ card.term }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                      <span class="block text-xs text-gray-500 font-medium">Generated Date</span>
+                                      <span class="block text-base text-gray-800">{{ formatDate(card.generatedAt) }}</span>
+                                    </div>
+                                    <div class="mb-2">
+                                      <span class="block text-xs text-gray-500 font-medium">Generated By</span>
+                                      <span class="block text-base text-gray-800">{{ card.generatedByName }}</span>
+                                    </div>
+                                    <Button @click="openPdfModal(card.id, card.studentName)" size="small" severity="secondary" outlined class="w-full mt-2">
+                                      <i class="pi pi-eye mr-1"></i>
+                                      View Report Card
+                                    </Button>
+                                  </div>
+                                  <div v-if="filteredStudentReportCards.length === 0 && !loadingReportCards" class="text-center text-gray-500 mt-4">
+                                    {{ viewSelectedStudent ? 'No report cards found for this student.' : 'Please select a student to view report cards.' }}
+                                  </div>
+                                </div>
+                            </div>
+
+                            <!-- Class Report Cards Viewer (NEW) -->
+                            <Divider />
+                            <div class="mb-4">
+                                <h3 class="text-lg font-semibold mb-3">Class Report Cards</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                    <div class="field">
+                                        <label for="class-view-grade-select" class="block text-sm font-medium mb-2">Grade/Class</label>
+                                        <Dropdown
+                                            id="class-view-grade-select"
+                                            v-model="classViewSelectedGrade"
+                                            :options="grades"
+                                            optionLabel="fullName"
+                                            optionValue="id"
+                                            placeholder="Select Grade"
+                                            class="w-full"
+                                            :loading="gradesLoading"
+                                            filter
+                                            filterPlaceholder="Search grades..."
+                                        />
+                                    </div>
+                                    <div class="field">
+                                        <label for="class-view-academic-year" class="block text-sm font-medium mb-2">Academic Year</label>
+                                        <Dropdown
+                                            id="class-view-academic-year"
+                                            v-model="classViewAcademicYear"
+                                            :options="academicYears"
+                                            optionLabel="name"
+                                            optionValue="id"
+                                            placeholder="Select Academic Year"
+                                            class="w-full"
+                                            :loading="academicYearsLoading"
+                                        />
+                                    </div>
+                                    <div class="field">
+                                        <label for="class-view-term" class="block text-sm font-medium mb-2">Term</label>
+                                        <Dropdown id="class-view-term" v-model="classViewSelectedTerm" :options="terms" optionLabel="label" optionValue="value" placeholder="Select Term" class="w-full" />
+                                    </div>
+                                    
+                                    <div class="field">
+                                        <div class="mt-7"></div>
+                                        <Button 
+                                            @click="generateClassReportCards" 
+                                            :disabled="!classViewSelectedGrade || !classViewAcademicYear || !classViewSelectedTerm"
+                                        >
+                                            Generate Cards
+                                        </Button>
+                                    </div>
+
+                                    <div class="field">
+                                        <Button @click="loadClassViewReportCards" :loading="loadingClassViewBlobsTab" :disabled="!classViewSelectedGrade || !classViewAcademicYear || !classViewSelectedTerm" class="w-full mt-7" severity="secondary">
+                                            Load All Class Report Cards
+                                        </Button>
+                                    </div>
+                                    
+                                </div>
+                                <div v-if="loadingClassViewBlobsTab">
+                                    <ProgressBar mode="indeterminate" style="height: 1px" />
+                                    <div class="text-center mt-2">Loading class report cards...</div>
+                                </div>
+                                <div v-if="classViewReportCards.length > 0">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <input
+                                            v-model="classReportCardSearchQuery"
+                                            type="text"
+                                            placeholder="Search class report cards..."
+                                            class="p-inputtext p-component w-full"
+                                            style="max-width: 350px;"
+                                        />
+                                    </div>
+                                    <DataTable :value="filteredClassViewReportCards"  stripedRows class="p-datatable-sm">
+                                        <Column field="studentName" header="Student" />
+                                        <Column v-if="!isMobile" field="gradeName" header="Grade" />
+                                        <Column style="width: 180px; text-align: right;" headerStyle="text-align: right;">
+                                            <template #header>
+                                                <span v-if="!isMobile">Actions</span>
+                                            </template>
+                                            <template #body="{ data }">
+                                                <Button @click="openPdfModal(data.id, data.studentName)" size="small" severity="secondary" outlined>
+                                                    <i class="pi pi-eye mr-1"></i>
+                                                    View
+                                                </Button>
+                                            </template>
+                                        </Column>
+                                    </DataTable>
+                                    <div v-if="classViewReportCards.length > 0" class="text-right text-sm text-gray-600 mt-2">
+                                        Total: {{ classViewReportCards.length }} students report cards.
+                                    </div>
+                                    <!-- Download ZIP Button for Class Report Cards -->
+                                    <div v-if="classViewReportCards.length > 0" class="mt-4 flex flex-col md:flex-row gap-2 justify-end">
+                                        <Button
+                                            @click="sendClassReportCardsEmail"
+                                            :loading="sendingClassReportCardsEmail"
+                                            :disabled="sendingClassReportCardsEmail || !classViewSelectedGrade || !classViewAcademicYear || !classViewSelectedTerm"
+                                            severity="info"
+                                            icon="pi pi-envelope"
+                                            class="w-full md:w-auto"
+                                        >
+                                            Send
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div v-else-if="!loadingClassViewBlobsTab">
+                                    <span>No class report cards loaded yet.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </TabPanel>
+
+
+
+                
+
+
+
+                
+            </div>
+        </div>
+
+        <!-- Recent Report Cards -->
+      
+
+       <!-- Class Report Card View Section -->
+
+        
+
+    
+    
+
+        <!-- PDF Modal -->
+        <Dialog v-model:visible="showPdfModal" modal header="Report Card PDF" :style="{ width: '80vw' }" @hide="closePdfModal">
+            <div v-if="pdfUrl" class="pdf-container">
+                <iframe 
+                    :src="pdfUrl" 
+                    width="100%" 
+                    height="600px" 
+                    style="border: none"
+                    @load="onIframeLoad"
+                    @error="onIframeError"
+                ></iframe>
+                <div v-if="pdfLoadError" class="pdf-error mt-4 p-4 bg-red-50 border border-red-200 rounded">
+                    <p class="text-red-700 mb-2">Failed to load PDF in iframe.</p>
+                    <Button 
+                        @click="downloadPdfFallback" 
+                        severity="danger" 
+                        outlined
+                        icon="pi pi-download"
+                    >
+                        Download PDF Instead
+                    </Button>
+                </div>
+            </div>
+            <div v-else class="text-center p-4">
+                <ProgressBar mode="indeterminate" />
+                <p class="mt-2">Loading PDF...</p>
+            </div>
+        </Dialog>
+
+        <!-- Toast for notifications -->
+        <Toast />
+    </div>
+</template>
+
+<script setup>
+import { examService, gradeService, reportService, studentService } from '@/service/api.service';
+import { useToast } from 'primevue/usetoast';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+
+
+// PrimeVue Components
+import Button from 'primevue/button';
+import Column from 'primevue/column';
+import DataTable from 'primevue/datatable';
+import Dialog from 'primevue/dialog';
+import Divider from 'primevue/divider';
+import Dropdown from 'primevue/dropdown';
+import ProgressBar from 'primevue/progressbar';
+import TabPanel from 'primevue/tabpanel';
+import Toast from 'primevue/toast';
+
+const toast = useToast();
+
+// Reactive data
+const activeTab = ref(0);
+const students = ref([]);
+const grades = ref([]);
+const academicYears = ref([]);
+const activeAcademicYear = ref(null);
+const pollingInterval = ref(null); // Fix: Define pollingInterval ref
+const terms = ref([
+    { label: 'Term 1', value: 1 },
+    { label: 'Term 2', value: 2 },
+    { label: 'Term 3', value: 3 }
+]);
+
+// Single student generation
+const selectedStudent = ref(null);
+const academicYear = ref(null);
+const selectedTerm = ref(null);
+const generating = ref(false);
+
+// Class generation
+const selectedGrade = ref(null);
+const classAcademicYear = ref(null);
+const selectedClassTerm = ref(null);
+const generatingClass = ref(false);
+
+// Report cards viewing
+const viewSelectedStudent = ref(null);
+const studentReportCards = ref([]);
+const loadingReportCards = ref(false);
+
+// Recent report cards
+const recentReportCards = ref([]);
+
+// Loading states
+const studentsLoading = ref(false);
+const gradesLoading = ref(false);
+const academicYearsLoading = ref(false);
+const downloading = ref(null);
+const isZipDownloaded = ref(false);
+
+const sendingClassReportCardsEmail = ref(false);
+
+// For class view IDs (on-demand viewing)
+const classReportCardViewBlobs = ref([]); // [{ id, studentName, gradeName }]
+const loadingClassViewBlobs = ref(false);
+
+// For PDF debug: store the last blob for download
+const lastPdfBlob = ref(null);
+const pdfUrl = ref('');
+const showPdfModal = ref(false);
+const pdfLoadError = ref(false);
+
+// Add search bar above report cards table
+const reportCardSearchQuery = ref("");
+const filteredStudentReportCards = computed(() => {
+    if (!reportCardSearchQuery.value) return studentReportCards.value;
+    const query = reportCardSearchQuery.value.toLowerCase();
+    return studentReportCards.value.filter(card => {
+        return (
+            (card.studentName && card.studentName.toLowerCase().includes(query)) ||
+            (card.academicYear && card.academicYear.toString().toLowerCase().includes(query)) ||
+            (card.term && card.term.toString().toLowerCase().includes(query))
+        );
+    });
+});
+
+async function openPdfModal(reportCardId, studentName) {
+    console.log('📄 Opening PDF modal for report card ID:', reportCardId, 'Student:', studentName);
+    
+    // Reset error state
+    pdfLoadError.value = false;
+    
+    // Show loading toast (store toast message for removal)
+    let loadingToastMessage = null;
+    try {
+        loadingToastMessage = toast.add({
+            severity: 'info',
+            summary: 'Loading PDF',
+            detail: `Loading report card for ${studentName || 'student'}...`,
+            life: 30000 // 30 seconds
+        });
+    } catch (e) {
+        console.warn('Could not create loading toast:', e);
+    }
+
+    try {
+        // Fetch the blob
+        console.log('📥 Fetching report card blob...');
+        const blob = await reportService.fetchReportCardBlob(reportCardId);
+        
+        // Validate blob
+        if (!blob || !(blob instanceof Blob)) {
+            throw new Error('Invalid blob response from server');
+        }
+        
+        console.log('✅ Blob received:', {
+            size: blob.size,
+            type: blob.type,
+            sizeInMB: (blob.size / 1024 / 1024).toFixed(2)
+        });
+        
+        // Check if blob is empty
+        if (blob.size === 0) {
+            throw new Error('Received empty PDF file');
+        }
+        
+        // Check if it's actually a PDF
+        if (blob.type && !blob.type.includes('pdf') && !blob.type.includes('application/pdf')) {
+            console.warn('⚠️ Blob type is not PDF:', blob.type);
+            // Still try to display it, might be a server issue with content-type
+        }
+        
+        // Create object URL
+        const url = window.URL.createObjectURL(blob);
+        console.log('🔗 Created object URL:', url);
+        
+        // Remove loading toast safely
+        if (loadingToastMessage !== null) {
+            try {
+                // PrimeVue toast.remove expects the message object, not an ID
+                if (typeof loadingToastMessage === 'object' && loadingToastMessage !== null) {
+                    toast.remove(loadingToastMessage);
+                } else if (typeof loadingToastMessage === 'number' || typeof loadingToastMessage === 'string') {
+                    // Some versions might use ID, try removing by message
+                    toast.remove(loadingToastMessage);
+                }
+            } catch (e) {
+                // If removal fails, just clear all toasts (fallback)
+                try {
+                    toast.clear();
+                } catch (clearError) {
+                    console.warn('Could not clear toasts:', clearError);
+                }
+            }
+        }
+        
+        if (isMobile.value) {
+            // On mobile, open PDF in new tab
+            console.log('📱 Mobile device - opening in new tab');
+            window.open(url, '_blank');
+            
+            toast.add({
+                severity: 'success',
+                summary: 'Success',
+                detail: 'PDF opened in new tab',
+                life: 3000
+            });
+        } else {
+            // On desktop, show modal
+            console.log('🖥️ Desktop device - showing in modal');
+            lastPdfBlob.value = blob; // Save for debug download
+            pdfUrl.value = url;
+            showPdfModal.value = true;
+            console.log('✅ Modal should be visible now. showPdfModal:', showPdfModal.value, 'pdfUrl:', pdfUrl.value);
+            
+            // Verify modal state after a short delay
+            setTimeout(() => {
+                if (!showPdfModal.value) {
+                    console.error('❌ Modal state was reset unexpectedly');
+                }
+            }, 100);
+        }
+    } catch (error) {
+        // Remove loading toast safely
+        if (loadingToastMessage !== null) {
+            try {
+                // PrimeVue toast.remove expects the message object, not an ID
+                if (typeof loadingToastMessage === 'object' && loadingToastMessage !== null) {
+                    toast.remove(loadingToastMessage);
+                } else if (typeof loadingToastMessage === 'number' || typeof loadingToastMessage === 'string') {
+                    // Some versions might use ID, try removing by message
+                    toast.remove(loadingToastMessage);
+                }
+            } catch (e) {
+                // If removal fails, just clear all toasts (fallback)
+                try {
+                    toast.clear();
+                } catch (clearError) {
+                    console.warn('Could not clear toasts:', clearError);
+                }
+            }
+        }
+        
+        console.error('❌ PDF loading error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            response: error.response,
+            reportCardId: reportCardId
+        });
+        
+        toast.add({
+            severity: 'error',
+            summary: 'Error Loading PDF',
+            detail: error.message || 'Failed to load PDF. Please check your connection and try again.',
+            life: 8000
+        });
+    }
+}
+
+function closePdfModal() {
+    showPdfModal.value = false;
+    if (pdfUrl.value) {
+        window.URL.revokeObjectURL(pdfUrl.value);
+        pdfUrl.value = '';
+    }
+    pdfLoadError.value = false;
+}
+
+function onIframeLoad() {
+    console.log('✅ PDF iframe loaded successfully');
+    pdfLoadError.value = false;
+}
+
+function onIframeError() {
+    console.error('❌ PDF iframe failed to load');
+    pdfLoadError.value = true;
+}
+
+function downloadPdfFallback() {
+    if (lastPdfBlob.value) {
+        const url = window.URL.createObjectURL(lastPdfBlob.value);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `report-card-${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast.add({
+            severity: 'info',
+            summary: 'Download Started',
+            detail: 'PDF download started. Please check your downloads folder.',
+            life: 3000
+        });
+    }
+}
+
+
+// Clean up on component unmount
+onUnmounted(() => {
+    if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+    }
+});
+
+
+const generateClassReportCards = async () => {
+    if (!classViewSelectedGrade.value || !classViewAcademicYear.value || !classViewSelectedTerm.value) {
+        toast.add({
+            severity: 'warn',
+            summary: 'Missing Selection',
+            detail: 'Please select a grade, academic year, and term before generating report cards.',
+            life: 4000
+        });
+        generatingClass.value = false;
+        return;
+    }
+    generatingClass.value = true;
+    try {
+        // Find the year name from the ID
+        const yearObj = academicYears.value.find(y => y.id === classViewAcademicYear.value);
+        const yearName = yearObj ? yearObj.name : classViewAcademicYear.value;
+        const response = await reportService.generateClassReportCards(
+            classViewSelectedGrade.value,
+            yearName, // pass the year string
+            classViewSelectedTerm.value
+        );
+        // Add student names to each report card before adding to recent list
+        const reportCardsWithStudentInfo = response.map((report) => {
+            const studentInfo = students.value.find((s) => s.id === report.studentId);
+            return {
+                ...report,
+                studentName: studentInfo?.fullName || 'Unknown Student',
+                gradeName: studentInfo?.gradeName || 'Unknown Grade'
+            };
+        });
+        recentReportCards.value.unshift(...reportCardsWithStudentInfo);
+        toast.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: `Generated ${response.length} report cards successfully`,
+            life: 3000
+        });
+        // No Reset form
+        //selectedGrade.value = null
+        //selectedClassTerm.value = null
+    } catch (error) {
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'Failed to generate class report cards',
+            life: 5000
+        });
+    } finally {
+        generatingClass.value = false;
+    }
+};
+
+const loadStudentReportCards = async () => {
+    if (!viewSelectedStudent.value) return;
+
+    loadingReportCards.value = true;
+    try {
+        const response = await reportService.getStudentReportCards(viewSelectedStudent.value);
+        studentReportCards.value = response;
+    } catch (error) {
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'Failed to load report cards',
+            life: 5000
+        });
+        studentReportCards.value = [];
+    } finally {
+        loadingReportCards.value = false;
+    }
+};
+
+
+// Load initial data
+const loadStudents = async () => {
+    studentsLoading.value = true;
+    try {
+        const response = await studentService.getAll();
+        // Extract the actual data from the response
+        const studentsData = response?.data || [];
+        // Filter to only active students and sort by name
+        students.value = studentsData
+            .filter((student) => student.isActive !== false) // Include students where isActive is true or undefined
+            .sort((a, b) => a.fullName.localeCompare(b.fullName))
+            .map((student) => ({
+                id: student.id,
+                fullName: student.fullName,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                gradeId: student.gradeId,
+                gradeName: student.gradeName
+            }));
+    } catch (error) {
+        console.error('Failed to load students:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load students. Please try again.',
+            life: 5000
+        });
+        students.value = [];
+    } finally {
+        studentsLoading.value = false;
+    }
+};
+
+const loadGrades = async () => {
+    gradesLoading.value = true;
+    try {
+        // Using grade service instead of direct API call
+        const response = await gradeService.getAll();
+
+        // Filter active grades and sort by level for better UX
+        grades.value = response
+            .filter((grade) => grade.isActive)
+            .sort((a, b) => a.level - b.level)
+            .map((grade) => ({
+                id: grade.id,
+                fullName: grade.fullName,
+                name: grade.name,
+                stream: grade.stream,
+                section: grade.section,
+                level: grade.level,
+                studentCount: grade.studentCount,
+                homeroomTeacherName: grade.homeroomTeacherName
+            }));
+    } catch (error) {
+        console.error('Failed to load grades:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load grades. Please try again.',
+            life: 5000
+        });
+        grades.value = [];
+    } finally {
+        gradesLoading.value = false;
+    }
+};
+
+const loadAcademicYears = async () => {
+    academicYearsLoading.value = true;
+    try {
+        // Load all academic years and active academic year
+        const [allYears, activeYear] = await Promise.all([examService.getAcademicYears(), examService.getActiveAcademicYear()]);
+
+        console.log('🔍 Academic Years Response:', allYears);
+        console.log('🔍 Active Year Response:', activeYear);
+
+        // Handle the response structure - it might be direct array or wrapped
+        const yearsArray = Array.isArray(allYears) ? allYears : allYears.data || [];
+
+        // Sort academic years by year descending (most recent first)
+        academicYears.value = yearsArray
+            .sort((a, b) => {
+                const yearA = parseInt(a.name) || 0;
+                const yearB = parseInt(b.name) || 0;
+                return yearB - yearA;
+            })
+            .map((year) => ({
+                id: year.id,
+                name: year.name,
+                year: parseInt(year.name), // Convert name to number for easier handling
+                startDate: year.startDate,
+                endDate: year.endDate,
+                isActive: year.isActive,
+                isClosed: year.isClosed
+            }));
+
+        console.log('🔍 Processed Academic Years:', academicYears.value);
+
+        // Set active academic year as default
+        if (activeYear) {
+            activeAcademicYear.value = activeYear;
+            const activeYearValue = parseInt(activeYear.name);
+            academicYear.value = activeYearValue;
+            classAcademicYear.value = activeYearValue;
+            console.log('🔍 Set Active Year:', activeYearValue);
+        }
+    } catch (error) {
+        console.error('Failed to load academic years:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load academic years. Please try again.',
+            life: 5000
+        });
+        academicYears.value = [];
+    } finally {
+        academicYearsLoading.value = false;
+    }
+};
+
+// Utility functions
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+const getSelectedGradeInfo = (gradeId) => {
+    const grade = grades.value.find((g) => g.id === gradeId);
+    return grade ? `${grade.fullName} (${grade.studentCount} students)` : '';
+};
+
+const getSelectedAcademicYearInfo = (yearValue) => {
+    const year = academicYears.value.find((y) => y.year === yearValue);
+    return year ? year.name : yearValue;
+};
+
+// Lifecycle
+onMounted(() => {
+    loadAcademicYears();
+    loadStudents();
+    loadGrades();
+});
+
+// Add new refs and method in <script setup>:
+const classViewSelectedGrade = ref(null);
+const classViewAcademicYear = ref(null);
+const classViewSelectedTerm = ref(null);
+const classViewReportCards = ref([]);
+const loadingClassViewBlobsTab = ref(false);
+
+const loadClassReportCardIds = async () => {
+    if (!selectedGrade.value || !classAcademicYear.value || !selectedClassTerm.value) return;
+    loadingClassViewBlobs.value = true;
+    classReportCardViewBlobs.value = [];
+    try {
+        const ids = await reportService.getClassReportCardIds(selectedGrade.value, classAcademicYear.value, selectedClassTerm.value);
+        classReportCardViewBlobs.value = ids;
+        console.log('classReportCardViewBlobs:', classReportCardViewBlobs.value);
+    } catch (error) {
+        console.error('Failed to load report card IDs:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'Failed to load class report card IDs',
+            life: 5000
+        });
+        classReportCardViewBlobs.value = [];
+    } finally {
+        loadingClassViewBlobs.value = false;
+    }
+};
+
+// Watch for changes and auto-load class report card IDs
+watch([selectedGrade, classAcademicYear, selectedClassTerm], ([grade, year, term]) => {
+    if (grade && year && term) {
+        loadClassReportCardIds();
+    } else {
+        classReportCardViewBlobs.value = [];
+    }
+});
+
+const loadClassViewReportCards = async () => {
+    if (!classViewSelectedGrade.value || !classViewAcademicYear.value || !classViewSelectedTerm.value) return;
+    loadingClassViewBlobsTab.value = true;
+    classViewReportCards.value = [];
+    try {
+        const ids = await reportService.getClassReportCardIds(classViewSelectedGrade.value, classViewAcademicYear.value, classViewSelectedTerm.value);
+        classViewReportCards.value = ids;
+    } catch (error) {
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'Failed to load class report cards',
+            life: 5000
+        });
+        classViewReportCards.value = [];
+    } finally {
+        loadingClassViewBlobsTab.value = false;
+    }
+};
+
+// Utility to ensure academicYear is always an integer
+function getAcademicYearInt(val) {
+    if (typeof val === 'object' && val !== null) {
+        if (val.name) return parseInt(val.name, 10);
+        if (val.year) return parseInt(val.year, 10);
+        if (val.id) return parseInt(val.id, 10); // fallback
+    }
+    return parseInt(val, 10);
+}
+
+const sendClassReportCardsEmail = async () => {
+    if (!classViewSelectedGrade.value || !classViewAcademicYear.value || !classViewSelectedTerm.value) return;
+    sendingClassReportCardsEmail.value = true;
+    try {
+        // Ensure academicYear is the year string/number, not the ID
+        let academicYearValue = classViewAcademicYear.value;
+        if (typeof academicYearValue === 'object' && academicYearValue.name) {
+            academicYearValue = academicYearValue.name;
+        }
+        if (typeof academicYearValue === 'number') {
+            const yearObj = academicYears.value.find(y => y.id === academicYearValue);
+            academicYearValue = yearObj ? yearObj.name : academicYearValue;
+        }
+        await reportService.sendClassReportCardsEmail(
+            classViewSelectedGrade.value,
+            academicYearValue,
+            classViewSelectedTerm.value
+        );
+        toast.add({
+            severity: 'success',
+            summary: 'Email Sent',
+            detail: 'Report card email is being processed in the background.',
+            life: 4000
+        });
+    } catch (error) {
+        toast.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error.message || 'Failed to send report card email',
+            life: 5000
+        });
+    } finally {
+        sendingClassReportCardsEmail.value = false;
+    }
+};
+
+// Mobile detection (simple, can be improved)
+const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+// Listen for resize to update isMobile
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth <= 768;
+  });
+}
+
+const classReportCardSearchQuery = ref("");
+const filteredClassViewReportCards = computed(() => {
+    if (!classReportCardSearchQuery.value) return classViewReportCards.value;
+    const query = classReportCardSearchQuery.value.toLowerCase();
+    return classViewReportCards.value.filter(card => {
+        return (
+            (card.studentName && card.studentName.toLowerCase().includes(query)) ||
+            (card.gradeName && card.gradeName.toLowerCase().includes(query)) ||
+            (card.id && card.id.toString().toLowerCase().includes(query))
+        );
+    });
+});
+
+</script>
+
+<style scoped>
+.report-card-container {
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.card-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+}
+
+.grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-3 {
+    margin-bottom: 0.75rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mb-6 {
+    margin-bottom: 1.5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mr-1 {
+    margin-right: 0.25rem;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.block {
+    display: block;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.text-green-600 {
+    color: #059669;
+}
+
+.text-red-600 {
+    color: #dc2626;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .report-card-mobile-card {
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    padding: 1rem 0.5rem 0.5rem 0.5rem;
+  }
+}
+</style>

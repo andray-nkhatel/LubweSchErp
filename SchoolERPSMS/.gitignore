@@ -1,0 +1,9 @@
+# Ignore build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.dll
+*.exe
+*.pdb
+*.zip

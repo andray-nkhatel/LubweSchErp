@@ -1,0 +1,134 @@
+# Environment Variables (NEVER COMMIT THESE!)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.env
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Node.js (Vue Client)
+SchoolERPSMSClient/node_modules/
+SchoolERPSMSClient/dist/
+SchoolERPSMSClient/.vite/
+SchoolERPSMSClient/.cache/
+SchoolERPSMSClient/coverage/
+SchoolERPSMSClient/.nuxt/
+SchoolERPSMSClient/.nitro/
+SchoolERPSMSClient/.output/
+SchoolERPSMSClient/.eslintcache
+
+# .NET (ASP.NET Core API)
+SchoolERPSMS/bin/
+SchoolERPSMS/obj/
+SchoolERPSMS/*.dll
+SchoolERPSMS/*.pdb
+SchoolERPSMS/*.exe
+SchoolERPSMS/*.user
+SchoolERPSMS/*.suo
+SchoolERPSMS/.vs/
+SchoolERPSMS/.vscode/
+SchoolERPSMS/TestResults/
+SchoolERPSMS/[Tt]est[Rr]esult*/
+SchoolERPSMS/[Bb]in/
+SchoolERPSMS/[Oo]bj/
+SchoolERPSMS/[Ll]og/
+SchoolERPSMS/[Ll]ogs/
+
+# Migrations (SQL Server migrations - incompatible with PostgreSQL)
+SchoolERPSMS/Migrations/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+out/
+*.zip
+*.tar.gz
+*.rar
+
+# Docker volumes and data
+db_data/
+certbot-www/
+certbot-conf/
+nginx-conf/
+
+# Backup files
+backups/
+*.backup
+*.sql.backup
+
+# Media and uploads (if large, consider Git LFS)
+# SchoolERPSMS/Media/
+# SchoolERPSMS/Reports/
+
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Package manager lock files (optional - some teams commit these)
+# package-lock.json
+# yarn.lock
+
+# Secrets and keys
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Local configuration
+local.json
+local.settings.json
+appsettings.local.json
+

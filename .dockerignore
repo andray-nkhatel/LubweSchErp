@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Node modules (for client)
+SchoolERPSMSClient/node_modules/
+SchoolERPSMSClient/dist/
+
+# Build outputs
+SchoolERPSMS/bin/
+SchoolERPSMS/obj/
+SchoolERPSMS/*.dll
+SchoolERPSMS/*.pdb
+
+# Migrations (SQL Server migrations incompatible with PostgreSQL)
+SchoolERPSMS/Migrations/
+
+# Test files
+**/test/
+**/tests/
+**/*.test.*
+**/*.spec.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
