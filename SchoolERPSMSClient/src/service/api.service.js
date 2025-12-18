@@ -629,9 +629,47 @@ export const subjectService = {
         `/subjects/${subjectId}/assign-to-grade/${gradeId}`, 
         assignmentData
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error(`Error assigning subject ${subjectId} to grade ${gradeId}:`, error);
+      throw error;
+    }
+  },
+
+  async bulkAssignSubjectsToGrade(gradeId, bulkData) {
+    try {
+      const response = await apiClient.post(
+        `/subjects/grades/${gradeId}/assign-subjects`,
+        bulkData
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error bulk assigning subjects to grade ${gradeId}:`, error);
+      throw error;
+    }
+  },
+
+  async syncGradeStudentSubjects(gradeId, syncData) {
+    try {
+      const response = await apiClient.post(
+        `/subjects/grades/${gradeId}/sync-student-subjects`,
+        syncData
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error syncing student subjects for grade ${gradeId}:`, error);
+      throw error;
+    }
+  },
+
+  async getGradeSubjectsWithInheritance(gradeId, includeInheritance = false) {
+    try {
+      const response = await apiClient.get(
+        `/subjects/grades/${gradeId}/subjects?includeInheritance=${includeInheritance}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching subjects for grade ${gradeId}:`, error);
       throw error;
     }
   },
