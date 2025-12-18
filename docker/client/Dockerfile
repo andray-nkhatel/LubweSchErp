@@ -2,6 +2,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Increase Node.js memory limit for build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Copy package files
 COPY SchoolERPSMSClient/package*.json ./
 RUN npm ci
@@ -13,8 +16,8 @@ COPY SchoolERPSMSClient/. .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# Build the application
-RUN npm run build
+# Build the application with timeout and verbose output
+RUN npm run build -- --logLevel info
 
 # Production stage
 FROM nginx:stable-alpine

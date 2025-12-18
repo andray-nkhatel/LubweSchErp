@@ -98,22 +98,6 @@ nano .env
 Add the following content (replace with your actual values):
 
 ```env
-# Database Configuration
-POSTGRES_DB=SchoolDB
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_secure_password_here
-
-# JWT Configuration
-JWT_KEY=your_jwt_secret_key_here_minimum_32_characters
-JWT_ISSUER=SUBLIME SCHOOL ERP
-JWT_AUDIENCE=SUBLIME SCHOOL ERP
-
-# Domain Configuration (for SSL certificates)
-DOMAIN=yourdomain.com
-EMAIL=your-email@example.com
-
-# API Configuration
-ASPNETCORE_ENVIRONMENT=Production
 ```
 
 ### 3.3 Generate Secure Passwords

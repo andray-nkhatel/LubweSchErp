@@ -15,7 +15,11 @@ export default defineConfig({
     plugins: [
         vue(),
         Components({
-            resolvers: [PrimeVueResolver()]
+            resolvers: [PrimeVueResolver()],
+            // Limit directory scanning to prevent hangs
+            dirs: ['src/components', 'src/views'],
+            // Exclude node_modules and dist
+            exclude: [/node_modules/, /dist/]
         })
     ],
     resolve: {
@@ -50,11 +54,30 @@ export default defineConfig({
   },
   // Ensure external scripts load properly
   build: {
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Set sourcemap to false for faster builds
+    sourcemap: false,
     rollupOptions: {
       external: ['jquery'],
       output: {
         globals: {
           jquery: 'jQuery'
+        },
+        // Optimize chunk splitting to reduce memory usage
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('vue') || id.includes('vue-router') || id.includes('vuex')) {
+              return 'vendor-vue';
+            }
+            if (id.includes('primevue') || id.includes('primeicons')) {
+              return 'vendor-primevue';
+            }
+            if (id.includes('axios') || id.includes('chart.js') || id.includes('dayjs')) {
+              return 'vendor-utils';
+            }
+            return 'vendor-other';
+          }
         }
       }
     }

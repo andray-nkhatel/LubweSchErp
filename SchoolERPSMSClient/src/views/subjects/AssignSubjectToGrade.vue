@@ -125,7 +125,7 @@
   </template>
   
   <script>
-  import { gradeService, subjectService, examService } from '@/service/api.service'; // Assuming you have a grade service
+  import { examService, gradeService, subjectService } from '@/service/api.service'; // Assuming you have a grade service
 
   
   export default {

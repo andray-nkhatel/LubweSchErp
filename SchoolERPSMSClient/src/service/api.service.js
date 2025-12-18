@@ -7,21 +7,27 @@ import axios from 'axios';
 // Examples:
 //   Development: VITE_API_BASE_URL=http://localhost:5287/api
 //   Production:  VITE_API_BASE_URL=https://bluebirdhub.somee.com/api
+//   Docker:      VITE_API_BASE_URL=/api (uses nginx reverse proxy)
 function getApiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
   
+  // Use default value for Docker/production if not set
+  // Default to /api for Docker compose setup (nginx reverse proxy)
+  const defaultUrl = '/api';
+  const apiUrl = envUrl || defaultUrl;
+  
   if (!envUrl) {
-    console.error('❌ VITE_API_BASE_URL is not set in environment variables!');
-    console.error('💡 Create a .env file with: VITE_API_BASE_URL=https://bluebirdhub.somee.com/api');
-    throw new Error('VITE_API_BASE_URL environment variable is required');
+    console.warn('⚠️ VITE_API_BASE_URL is not set in environment variables!');
+    console.warn(`💡 Using default value: ${defaultUrl}`);
+    console.warn('💡 For production, set VITE_API_BASE_URL in your .env file or Docker build args');
   }
   
   // Log in development for debugging
   if (import.meta.env.DEV) {
-    console.log('✅ Using API base URL:', envUrl);
+    console.log('✅ Using API base URL:', apiUrl);
   }
   
-  return envUrl;
+  return apiUrl;
 }
 
 // Create axios instance
