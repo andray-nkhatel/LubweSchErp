@@ -1,0 +1,20 @@
+# Production-only: serve a pre-built frontend with nginx.
+# No Node, no npm, no build step — use this when you build the app elsewhere
+# (e.g. locally or in CI) and only need to serve static files on the VPS.
+#
+# Prerequisite: build the frontend so SchoolERPSMSClient/dist exists, e.g.:
+#   cd SchoolERPSMSClient && npm ci && npm run build
+#
+# Then from repo root:
+#   docker build -f docker/client/Dockerfile.production -t school_client:prod .
+#   docker run -p 3000:80 school_client:prod
+#
+# Or use docker-compose.frontend.production.yml.
+
+FROM nginx:stable-alpine
+
+# Expect pre-built output from Vite (SchoolERPSMSClient/dist)
+COPY SchoolERPSMSClient/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

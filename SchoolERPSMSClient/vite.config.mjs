@@ -7,6 +7,14 @@ import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    css: {
+        preprocessorOptions: {
+            sass: {
+                // Silence Dart Sass legacy JS API deprecation (Vite still uses it)
+                silenceDeprecations: ['legacy-js-api']
+            }
+        }
+    },
     optimizeDeps: {
         noDiscovery: true,
          // Include jQuery to ensure proper loading

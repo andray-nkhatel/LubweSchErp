@@ -1,0 +1,36 @@
+# Frontend production: serve a pre-built dist with nginx (no build on the server).
+#
+# Workflow:
+#   1. Build the frontend once (locally or in CI):
+#        cd SchoolERPSMSClient
+#        npm ci
+#        VITE_API_BASE_URL=https://your-api.example.com/api npm run build
+#   2. From repo root, build the image (only copies dist, no npm on the server):
+#        docker compose -f docker-compose.frontend.production.yml build
+#   3. Run:
+#        docker compose -f docker-compose.frontend.production.yml up -d
+#
+# Use this on a VPS to avoid the long npm install + vite build on weak hardware.
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile.production
+    image: school_client:prod
+    container_name: school_client
+    ports:
+      - "3000:80"
+    networks:
+      - frontend-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  frontend-network:
+    driver: bridge

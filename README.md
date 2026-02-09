@@ -50,6 +50,23 @@ See [QUICK_START.md](QUICK_START.md) for detailed local setup.
 
 See [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md) for production deployment instructions.
 
+### Frontend: production-only image (no build on the server)
+
+To avoid running the long `npm install` + `vite build` on a weak VPS, you can build the frontend once (locally or in CI) and then only serve the static files with nginx:
+
+1. **Build the frontend** (set `VITE_API_BASE_URL` to your API URL):
+   ```bash
+   cd SchoolERPSMSClient
+   npm ci
+   VITE_API_BASE_URL=https://your-api.example.com/api npm run build
+   ```
+2. **From repo root**, build and run the production image (copies only `dist`, no Node on the server):
+   ```bash
+   docker compose -f docker-compose.frontend.production.yml up -d --build
+   ```
+
+See `docker/client/Dockerfile.production` and `docker-compose.frontend.production.yml` for details.
+
 ## Documentation
 
 - [QUICK_START.md](QUICK_START.md) - Local development setup
