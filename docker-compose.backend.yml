@@ -11,7 +11,7 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./docker/db/init:/docker-entrypoint-initdb.d
     networks:
-      - app-network
+      - backend-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
@@ -32,6 +32,8 @@ services:
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=${JWT_ISSUER:-SUBLIME SCHOOL ERP}
       - Jwt__Audience=${JWT_AUDIENCE:-SUBLIME SCHOOL ERP}
+    ports:
+      - "8080:8080"
     volumes:
       - ./SchoolERPSMS/Media:/app/Media
       - ./SchoolERPSMS/Reports:/app/Reports
@@ -40,7 +42,7 @@ services:
       db:
         condition: service_healthy
     networks:
-      - app-network
+      - backend-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
@@ -49,51 +51,10 @@ services:
       retries: 3
       start_period: 40s
 
-  # Vue 3 Client
-  client:
-    build:
-      context: .
-      dockerfile: docker/client/Dockerfile
-      args:
-        - VITE_API_BASE_URL=/api
-    container_name: school_client
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # NGINX Reverse Proxy
-  nginx:
-    image: nginx:stable-alpine
-    container_name: school_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/templates/default.conf.template:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-      - ./docker/nginx/start-nginx.sh:/start-nginx.sh:ro
-      - ./logs/nginx:/var/log/nginx
-    depends_on:
-      api:
-        condition: service_healthy
-      client:
-        condition: service_healthy
-    networks:
-      - app-network
-    restart: unless-stopped
-    command: ["/bin/sh", "/start-nginx.sh"]
-
 networks:
-  app-network:
+  backend-network:
     driver: bridge
 
 volumes:
   db_data:
     driver: local
-

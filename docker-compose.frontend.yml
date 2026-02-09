@@ -1,0 +1,24 @@
+services:
+  # Vue 3 Client (expects API at http://localhost:8080 when backend is running)
+  client:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8080/api
+    container_name: school_client
+    ports:
+      - "3000:80"
+    networks:
+      - frontend-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  frontend-network:
+    driver: bridge

@@ -250,6 +250,12 @@
           </template>
         </Column> -->
 
+        <Column field="id" header="Class ID" sortable style="width: 90px">
+          <template #body="{ data }">
+            <span class="font-medium text-900">{{ data.id }}</span>
+          </template>
+        </Column>
+
         <Column field="name" header="Grade Name" sortable style="min-width: 150px">
           <template #body="{ data }">
             <div class="flex flex-column gap-1">

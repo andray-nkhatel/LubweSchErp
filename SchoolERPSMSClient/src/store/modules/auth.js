@@ -98,7 +98,12 @@ const actions = {
   // Login action
   async login({ commit, dispatch }, credentials) {
     try {
-      const response = await apiClient.post('/auth/login', credentials);
+      // Send PascalCase so ASP.NET Core binds reliably; ensure strings (never undefined -> JSON would omit keys)
+      const payload = {
+        Username: (credentials?.username ?? credentials?.Username ?? '').toString(),
+        Password: (credentials?.password ?? credentials?.Password ?? '').toString()
+      };
+      const response = await apiClient.post('/auth/login', payload);
 
       // New API response: { token, user }
       const { token, refreshToken, user } = response.data;

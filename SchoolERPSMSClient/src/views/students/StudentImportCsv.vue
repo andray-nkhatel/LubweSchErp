@@ -3,7 +3,7 @@
     <div class="card">
       <div class="flex justify-content-between align-items-center mb-4">
         <h2 class="text-2xl font-semibold text-900 m-0">Import Students from CSV</h2>
-        <div class="flex gap-2">
+        <div class="flex gap-2 ml-auto">
           <Button 
             label="Download Template" 
             icon="pi pi-download"
@@ -286,7 +286,7 @@
 </template>
 
 <script setup>
-import { studentService } from '@/service/api.service';
+import { studentService, gradeService } from '@/service/api.service';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -694,60 +694,18 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Generate CSV template client-side
-const generateTemplateCSV = () => {
-  // Include instructions as comments
-  const instructions = `# Student Import Template - Instructions
-# ===========================================
-# REQUIRED COLUMNS (Minimum):
-#   - FirstName (or firstName): Student's first name
-#   - LastName (or lastName): Student's last name
-#   - GradeId (or gradeId): Numeric grade ID
-#
-# OPTIONAL COLUMNS:
-#   - MiddleName: Student's middle name
-#   - StudentNumber: Unique student number (auto-generated if not provided)
-#   - DateOfBirth: Birth date in YYYY-MM-DD format
-#   - Gender: Male, Female, or Other
-#   - Address: Student's address (use quotes if contains commas)
-#   - PhoneNumber: Student's phone number
-#   - GuardianName: Parent/guardian name
-#   - GuardianPhone: Guardian's phone number
-#
-# NOTES:
-#   - Headers are case-insensitive (FirstName = firstName)
-#   - Date format: YYYY-MM-DD (e.g., 2010-05-15)
-#   - Use quotes for fields containing commas: "123 Main St, City"
-#   - Empty fields are allowed for optional columns
-#   - Remove this instruction block before importing
-# ===========================================
+// Generate CSV template client-side: headers + 2 sample rows only (grades = optional for sample GradeIds)
+const generateTemplateCSV = (grades = []) => {
+  const headers = ['FirstName', 'LastName', 'GradeId', 'GuardianPhone'];
 
-`;
+  const g1 = grades.length > 0 ? String(grades[0].id) : '1';
+  const g2 = grades.length > 1 ? String(grades[1].id) : '2';
 
-  // Create header row with all possible columns
-  // Use PascalCase to match backend expectations (FirstName, LastName, GradeId)
-  const headers = [
-    'FirstName',
-    'LastName',
-    'MiddleName',
-    'StudentNumber',
-    'DateOfBirth',
-    'Gender',
-    'Address',
-    'PhoneNumber',
-    'GuardianName',
-    'GuardianPhone',
-    'GradeId'
-  ];
-  
-  // Create sample data rows
   const sampleRows = [
-    ['John', 'Doe', 'Michael', 'STU001', '2010-05-15', 'Male', '123 Main St, City', '555-0123', 'Jane Doe', '555-0124', '5'],
-    ['Sarah', 'Smith', '', 'STU002', '2011-08-22', 'Female', '456 Oak Ave, Town', '555-0125', 'Robert Smith', '555-0126', '4'],
-    ['Michael', 'Johnson', 'Lee', 'STU003', '2009-12-03', 'Male', '789 Pine Rd, Village', '', 'Mary Johnson', '555-0127', '6']
+    ['John', 'Doe', g1, '555-0124'],
+    ['Sarah', 'Smith', g2, '555-0126']
   ];
-  
-  // Escape CSV values (handle commas and quotes)
+
   const escapeCSVValue = (value) => {
     if (value === null || value === undefined) return '';
     const stringValue = String(value);
@@ -756,14 +714,12 @@ const generateTemplateCSV = () => {
     }
     return stringValue;
   };
-  
-  // Build CSV content
+
   const csvRows = [
     headers.map(escapeCSVValue).join(','),
     ...sampleRows.map(row => row.map(escapeCSVValue).join(','))
   ];
-  
-  return instructions + csvRows.join('\n');
+  return csvRows.join('\n');
 };
 
 // Download template
@@ -786,11 +742,17 @@ const downloadTemplate = async () => {
       }
     } catch (apiError) {
       // If API fails, generate template client-side (expected behavior)
-      // Only log in development mode to avoid console noise
       if (import.meta.env.DEV) {
         console.log('Template API unavailable, using client-side generation');
       }
-      const csvContent = generateTemplateCSV();
+      let grades = [];
+      try {
+        const list = await gradeService.getAll(true);
+        grades = Array.isArray(list) ? list : (list?.data ?? []);
+      } catch (_) {
+        // ignore; template will still include GradeId column and generic instructions
+      }
+      const csvContent = generateTemplateCSV(grades);
       blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       
       // Don't show info toast for expected fallback behavior

@@ -1,14 +1,17 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using SchoolErpSMS.Entities;
 
 namespace SchoolErpSMS.DTOs
 {
     public class LoginDto
     {
-        [Required]
+        [Required(ErrorMessage = "Username is required")]
+        [JsonPropertyName("username")]
         public string? Username { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Password is required")]
+        [JsonPropertyName("password")]
         public string? Password { get; set; }
     }
 

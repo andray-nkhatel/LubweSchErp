@@ -110,6 +110,22 @@ const login = async () => {
                 sticky: true,
                 id: new Date().getTime().toString()
             });
+        } else if (error.response && error.response.status === 400) {
+            const data = error.response.data;
+            let errorMessage = data?.message || data?.detail || 'Invalid request. Check username and password.';
+            if (data?.errors && typeof data.errors === 'object') {
+                const first = Object.values(data.errors)[0];
+                errorMessage = Array.isArray(first) ? first[0] : String(first);
+            }
+            console.warn('Login 400 response:', data);
+            toast.add({
+                severity: 'error',
+                summary: 'Login Failed',
+                detail: errorMessage,
+                life: 5000,
+                closable: true,
+                sticky: false
+            });
         } else {
             let errorMessage = 'Invalid credentials';
             if (error.response?.data?.message) {

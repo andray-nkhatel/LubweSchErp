@@ -170,10 +170,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)  // Allow any origin
+        policy.WithOrigins("http://localhost:3000", "http://localhost:80", "http://localhost", "http://127.0.0.1:3000", "http://127.0.0.1:80")
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials();  // Required for cookies and JWT tokens
+            .AllowCredentials();
     });
 });
 
