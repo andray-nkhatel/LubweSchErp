@@ -3,6 +3,8 @@ services:
   db:
     image: postgres:16-alpine
     container_name: school_db
+    ports:
+      - "5432:5432"   # Expose for local API (e.g. dotnet run)
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-SchoolDB}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}

@@ -169,8 +169,8 @@ builder.Services.AddSwaggerGen(c =>
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[]
     {
-        "http://localhost:3000", "http://localhost:80", "http://localhost",
-        "http://127.0.0.1:3000", "http://127.0.0.1:80",
+        "http://localhost:3000", "http://localhost:80", "http://localhost", "http://localhost:5173", "http://localhost:5287",
+        "http://127.0.0.1:3000", "http://127.0.0.1:80", "http://127.0.0.1:5173", "http://127.0.0.1:5287",
         "https://lubwesecondarysch.com", "http://lubwesecondarysch.com",
         "http://104.248.222.220", "http://104.248.222.220:3000", "http://104.248.222.220:80"
     };

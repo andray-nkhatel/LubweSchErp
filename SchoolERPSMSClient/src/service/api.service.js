@@ -1436,8 +1436,9 @@ async createAcademicYear(formData){
     if (error.response) {
       // Server responded with error status
       const status = error.response.status;
-      const message = error.response.data?.message || error.response.statusText;
-      
+      const data = error.response.data;
+      const message = data?.message ?? (typeof data === 'string' ? data : null) ?? error.response.statusText;
+
       switch (status) {
         case 401:
           throw new Error('Authentication required. Please log in again.');
@@ -1448,7 +1449,7 @@ async createAcademicYear(formData){
         case 422:
           throw new Error(`Validation error: ${message}`);
         case 500:
-          throw new Error('Server error. Please try again later.');
+          throw new Error(message || 'Server error. Please try again later.');
         default:
           throw new Error(`Error ${status}: ${message}`);
       }

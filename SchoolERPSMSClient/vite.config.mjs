@@ -40,8 +40,8 @@ export default defineConfig({
     global: 'globalThis',
   },
   // Development server proxy to bypass CORS issues
-  // To use the proxy in development, set VITE_API_BASE_URL=/api in .env.local
-  // The proxy will forward /api/* requests to the backend server
+  // To use proxy: set VITE_API_BASE_URL=/api in .env.local
+  // For local Docker API set target to http://localhost:8080; for remote use full URL
   server: {
     proxy: {
       '/api': {

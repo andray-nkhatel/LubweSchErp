@@ -4,6 +4,7 @@ using SchoolErpSMS.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace SchoolErpSMS.Controllers
 {
@@ -67,31 +68,39 @@ namespace SchoolErpSMS.Controllers
             try
             {
                 if (createAcademicYearDto == null)
-                    return BadRequest("Academic year data is required");
+                    return BadRequest(new { message = "Academic year data is required" });
                 if (string.IsNullOrWhiteSpace(createAcademicYearDto.Name))
-                    return BadRequest("Academic year name is required");
+                    return BadRequest(new { message = "Academic year name is required" });
+                if (createAcademicYearDto.StartDate == default)
+                    return BadRequest(new { message = "Start date is required" });
+                if (createAcademicYearDto.EndDate == default)
+                    return BadRequest(new { message = "End date is required" });
 
                 var academicYear = new AcademicYear
                 {
                     Name = createAcademicYearDto.Name.Trim(),
-                    StartDate = createAcademicYearDto.StartDate,
-                    EndDate = createAcademicYearDto.EndDate
+                    StartDate = EnsureUtc(createAcademicYearDto.StartDate),
+                    EndDate = EnsureUtc(createAcademicYearDto.EndDate)
                 };
 
                 var createdYear = await _academicYearService.CreateAcademicYearAsync(academicYear);
                 return CreatedAtAction(nameof(GetAcademicYear), new { id = createdYear.Id }, createdYear);
             }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Error creating academic year (database)");
+                var message = _env.IsDevelopment()
+                    ? (ex.InnerException?.Message ?? ex.Message)
+                    : "A database error occurred. Check that the academic year name is unique and try again.";
+                return StatusCode(500, new { message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating academic year");
-                var message = "An error occurred while creating the academic year.";
-                if (_env.IsDevelopment())
-                {
-                    message += " " + ex.Message;
-                    if (ex.InnerException != null)
-                        message += " Inner: " + ex.InnerException.Message;
-                }
-                return StatusCode(500, message);
+                var message = _env.IsDevelopment()
+                    ? (ex.InnerException?.Message ?? ex.Message)
+                    : "An error occurred while creating the academic year.";
+                return StatusCode(500, new { message });
             }
         }
 
@@ -104,7 +113,7 @@ namespace SchoolErpSMS.Controllers
             if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest("Academic year name is required");
 
-            var updated = await _academicYearService.UpdateAcademicYearAsync(id, dto.Name, dto.StartDate, dto.EndDate);
+            var updated = await _academicYearService.UpdateAcademicYearAsync(id, dto.Name, EnsureUtc(dto.StartDate), EnsureUtc(dto.EndDate));
             if (updated == null)
                 return NotFound();
 
@@ -146,8 +155,12 @@ namespace SchoolErpSMS.Controllers
             return Ok(new { message = "Academic year closed successfully" });
         }
 
-    
+        /// <summary>Npgsql requires UTC; treat Unspecified as UTC.</summary>
+        private static DateTime EnsureUtc(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc) return value;
+            if (value.Kind == DateTimeKind.Unspecified) return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+            return value.ToUniversalTime();
+        }
     }
-
-
 }
