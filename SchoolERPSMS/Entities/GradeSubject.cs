@@ -7,9 +7,14 @@ namespace SchoolErpSMS.Entities
         public int SubjectId { get; set; }
         public bool IsOptional { get; set; } = false;
         public bool IsActive { get; set; } = true;
-        
+
+        // Classwise assignment options (same as Sources/SchoolERPSMS)
+        public bool AutoAssignToStudents { get; set; } = false;
+        public int? AcademicYearId { get; set; }
+
         // Navigation properties
         public virtual Grade? Grade { get; set; }
         public virtual Subject? Subject { get; set; }
+        public virtual AcademicYear? AcademicYear { get; set; }
     }
 }

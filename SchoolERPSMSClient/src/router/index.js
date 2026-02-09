@@ -143,6 +143,8 @@ const router = createRouter({
                     },
                     component: () => import('@/views/subjects/SubjectList.vue')
                 },
+                // Subject–grade assignment (reference: Bluebird-Vue)
+                // Menu: Academic → Assign Subject to Grade / Bulk Assign to Class
                 {
                     path: 'subject-grade/assignments',
                     name: 'AssignSubjectToGrade',
@@ -150,6 +152,14 @@ const router = createRouter({
                         requiresAuth: true,
                     },
                     component: () => import('@/views/subjects/AssignSubjectToGrade.vue')
+                },
+                {
+                    path: 'subject-grade/bulk-assign',
+                    name: 'BulkAssignSubjectsToGrade',
+                    meta: {
+                        requiresAuth: true,
+                    },
+                    component: () => import('@/views/subjects/BulkAssignSubjectsToGrade.vue')
                 },
                 {
                     path: 'teacher-subject/assignments',
@@ -175,6 +185,9 @@ const router = createRouter({
                     },
                     component: () => import('@/views/exams/ExamType.vue')
                 },
+                // Academic Year creation (reference: Bluebird-Vue)
+                // Menu: Exams → Academic Years → /app/manage-years
+                // View: AcademicYears.vue — Add button opens dialog; createAcademicYear() POST /AcademicYears/
                 {
                     path: 'manage-years',
                     name: 'ManageYears',

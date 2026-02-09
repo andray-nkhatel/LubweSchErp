@@ -157,7 +157,7 @@ namespace SchoolErpSMS.Controllers
         }
 
         /// <summary>
-        /// Assign subject to grade (Admin only)
+        /// Assign subject to grade (Admin only). Supports update of existing assignment and auto-assign to students.
         /// </summary>
         [HttpPost("{subjectId}/assign-to-grade/{gradeId}")]
         [Authorize(Roles = "Admin,Staff")]
@@ -173,18 +173,81 @@ namespace SchoolErpSMS.Controllers
                 .FirstOrDefaultAsync(gs => gs.SubjectId == subjectId && gs.GradeId == gradeId);
 
             if (existingAssignment != null)
-                return BadRequest(new { message = "Subject already assigned to this grade" });
-
-            var gradeSubject = new GradeSubject
             {
-                SubjectId = subjectId,
-                GradeId = gradeId,
-                IsOptional = assignDto.IsOptional
-            };
+                existingAssignment.IsOptional = assignDto.IsOptional;
+                existingAssignment.AutoAssignToStudents = assignDto.AutoAssignToStudents;
+                existingAssignment.AcademicYearId = assignDto.AcademicYearId;
+            }
+            else
+            {
+                var gradeSubject = new GradeSubject
+                {
+                    SubjectId = subjectId,
+                    GradeId = gradeId,
+                    IsOptional = assignDto.IsOptional,
+                    AutoAssignToStudents = assignDto.AutoAssignToStudents,
+                    AcademicYearId = assignDto.AcademicYearId
+                };
+                _context.GradeSubjects.Add(gradeSubject);
+                await _context.SaveChangesAsync();
+                existingAssignment = gradeSubject;
+            }
 
-            _context.GradeSubjects.Add(gradeSubject);
+            if (assignDto.AutoAssignToStudents)
+            {
+                var students = await _context.Students
+                    .Where(s => s.GradeId == gradeId && s.IsActive && !s.IsArchived)
+                    .ToListAsync();
+
+                var assignedCount = 0;
+                var skippedCount = 0;
+
+                foreach (var student in students)
+                {
+                    var existingStudentSubject = await _context.StudentSubjects
+                        .FirstOrDefaultAsync(ss => ss.StudentId == student.Id && ss.SubjectId == subjectId);
+
+                    if (existingStudentSubject == null)
+                    {
+                        if (assignDto.AssignToExistingStudents || student.EnrollmentDate >= DateTime.UtcNow.AddDays(-1))
+                        {
+                            var studentSubject = new StudentSubject
+                            {
+                                StudentId = student.Id,
+                                SubjectId = subjectId,
+                                SourceType = SubjectAssignmentSource.Inherited,
+                                InheritedFromGradeId = gradeId,
+                                AssignedBy = User.Identity?.Name ?? "System",
+                                Notes = "Auto-assigned from grade"
+                            };
+                            _context.StudentSubjects.Add(studentSubject);
+                            assignedCount++;
+                        }
+                        else
+                            skippedCount++;
+                    }
+                    else if (existingStudentSubject.SourceType == SubjectAssignmentSource.Custom)
+                        skippedCount++;
+                    else if (existingStudentSubject.SourceType == SubjectAssignmentSource.Manual)
+                    {
+                        existingStudentSubject.SourceType = SubjectAssignmentSource.Inherited;
+                        existingStudentSubject.InheritedFromGradeId = gradeId;
+                        existingStudentSubject.Notes = "Converted to inherited from grade";
+                        assignedCount++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new
+                {
+                    message = "Subject assigned to grade successfully",
+                    autoAssigned = assignDto.AutoAssignToStudents,
+                    studentsAssigned = assignedCount,
+                    studentsSkipped = skippedCount
+                });
+            }
+
             await _context.SaveChangesAsync();
-
             return Ok(new { message = "Subject assigned to grade successfully" });
         }
 
@@ -665,8 +728,229 @@ public class TransferAssignmentsDto
     public int ToTeacherId { get; set; }
 }
 
+        /// <summary>
+        /// Bulk assign multiple subjects to a grade (Admin only)
+        /// </summary>
+        [HttpPost("grades/{gradeId}/assign-subjects")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult> BulkAssignSubjectsToGrade(int gradeId, [FromBody] BulkAssignSubjectsToGradeDto bulkDto)
+        {
+            var grade = await _context.Grades.FindAsync(gradeId);
+            if (grade == null) return NotFound("Grade not found");
 
+            var subjects = await _context.Subjects
+                .Where(s => bulkDto.SubjectIds.Contains(s.Id))
+                .ToListAsync();
 
+            if (subjects.Count != bulkDto.SubjectIds.Count)
+                return BadRequest(new { message = "One or more subjects not found" });
 
+            var assignedCount = 0;
+            var updatedCount = 0;
+            var studentAssignments = 0;
+
+            foreach (var subject in subjects)
+            {
+                var existingAssignment = await _context.GradeSubjects
+                    .FirstOrDefaultAsync(gs => gs.SubjectId == subject.Id && gs.GradeId == gradeId);
+
+                if (existingAssignment == null)
+                {
+                    var gradeSubject = new GradeSubject
+                    {
+                        SubjectId = subject.Id,
+                        GradeId = gradeId,
+                        IsOptional = false,
+                        AutoAssignToStudents = bulkDto.AutoAssignToStudents,
+                        AcademicYearId = bulkDto.AcademicYearId
+                    };
+                    _context.GradeSubjects.Add(gradeSubject);
+                    assignedCount++;
+                }
+                else
+                {
+                    existingAssignment.AutoAssignToStudents = bulkDto.AutoAssignToStudents;
+                    existingAssignment.AcademicYearId = bulkDto.AcademicYearId;
+                    updatedCount++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            if (bulkDto.AutoAssignToStudents)
+            {
+                var students = await _context.Students
+                    .Where(s => s.GradeId == gradeId && s.IsActive && !s.IsArchived)
+                    .ToListAsync();
+
+                foreach (var subject in subjects)
+                {
+                    foreach (var student in students)
+                    {
+                        var existingStudentSubject = await _context.StudentSubjects
+                            .FirstOrDefaultAsync(ss => ss.StudentId == student.Id && ss.SubjectId == subject.Id);
+
+                        if (existingStudentSubject == null)
+                        {
+                            if (bulkDto.AssignToExistingStudents || student.EnrollmentDate >= DateTime.UtcNow.AddDays(-1))
+                            {
+                                var studentSubject = new StudentSubject
+                                {
+                                    StudentId = student.Id,
+                                    SubjectId = subject.Id,
+                                    SourceType = SubjectAssignmentSource.Inherited,
+                                    InheritedFromGradeId = gradeId,
+                                    AssignedBy = User.Identity?.Name ?? "System",
+                                    Notes = "Auto-assigned from grade"
+                                };
+                                _context.StudentSubjects.Add(studentSubject);
+                                studentAssignments++;
+                            }
+                        }
+                        else if (existingStudentSubject.SourceType == SubjectAssignmentSource.Manual)
+                        {
+                            existingStudentSubject.SourceType = SubjectAssignmentSource.Inherited;
+                            existingStudentSubject.InheritedFromGradeId = gradeId;
+                            studentAssignments++;
+                        }
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                message = "Bulk assignment completed",
+                subjectsAssigned = assignedCount,
+                subjectsUpdated = updatedCount,
+                studentsAssigned = studentAssignments
+            });
+        }
+
+        /// <summary>
+        /// Sync student subjects with grade subjects (Admin only)
+        /// </summary>
+        [HttpPost("grades/{gradeId}/sync-student-subjects")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult> SyncGradeStudentSubjects(int gradeId, [FromBody] SyncGradeStudentSubjectsDto syncDto)
+        {
+            var grade = await _context.Grades.FindAsync(gradeId);
+            if (grade == null) return NotFound("Grade not found");
+
+            var gradeSubjects = await _context.GradeSubjects
+                .Where(gs => gs.GradeId == gradeId && gs.IsActive && gs.AutoAssignToStudents)
+                .Select(gs => gs.SubjectId)
+                .ToListAsync();
+
+            var students = await _context.Students
+                .Where(s => s.GradeId == gradeId && s.IsActive && !s.IsArchived)
+                .ToListAsync();
+
+            var addedCount = 0;
+            var removedCount = 0;
+
+            foreach (var student in students)
+            {
+                var studentSubjects = await _context.StudentSubjects
+                    .Where(ss => ss.StudentId == student.Id && ss.IsActive)
+                    .ToListAsync();
+
+                foreach (var subjectId in gradeSubjects)
+                {
+                    var existing = studentSubjects.FirstOrDefault(ss => ss.SubjectId == subjectId);
+                    if (existing == null)
+                    {
+                        var studentSubject = new StudentSubject
+                        {
+                            StudentId = student.Id,
+                            SubjectId = subjectId,
+                            SourceType = SubjectAssignmentSource.Inherited,
+                            InheritedFromGradeId = gradeId,
+                            AssignedBy = User.Identity?.Name ?? "System",
+                            Notes = "Synced from grade"
+                        };
+                        _context.StudentSubjects.Add(studentSubject);
+                        addedCount++;
+                    }
+                    else if (existing.SourceType == SubjectAssignmentSource.Manual)
+                    {
+                        existing.SourceType = SubjectAssignmentSource.Inherited;
+                        existing.InheritedFromGradeId = gradeId;
+                        addedCount++;
+                    }
+                }
+
+                if (syncDto.RemoveOrphaned)
+                {
+                    var orphanedSubjects = studentSubjects
+                        .Where(ss => ss.SourceType == SubjectAssignmentSource.Inherited
+                                  && ss.InheritedFromGradeId == gradeId
+                                  && !gradeSubjects.Contains(ss.SubjectId))
+                        .ToList();
+                    foreach (var orphaned in orphanedSubjects)
+                    {
+                        _context.StudentSubjects.Remove(orphaned);
+                        removedCount++;
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Sync completed",
+                subjectsAdded = addedCount,
+                subjectsRemoved = removedCount
+            });
+        }
+
+        /// <summary>
+        /// Get grade subjects with optional inheritance info (Admin, Teacher, Staff)
+        /// </summary>
+        [HttpGet("grades/{gradeId}/subjects")]
+        [Authorize(Roles = "Admin,Teacher,Staff")]
+        public async Task<ActionResult> GetGradeSubjectsWithInheritance(int gradeId, [FromQuery] bool includeInheritance = false)
+        {
+            var grade = await _context.Grades.FindAsync(gradeId);
+            if (grade == null) return NotFound("Grade not found");
+
+            var gradeSubjects = await _context.GradeSubjects
+                .Include(gs => gs.Subject)
+                .Where(gs => gs.GradeId == gradeId && gs.IsActive && gs.Subject.IsActive)
+                .ToListAsync();
+
+            if (!includeInheritance)
+            {
+                var result = gradeSubjects.Select(gs => new
+                {
+                    Id = gs.Subject.Id,
+                    Name = gs.Subject.Name,
+                    Code = gs.Subject.Code,
+                    IsOptional = gs.IsOptional,
+                    AutoAssignToStudents = gs.AutoAssignToStudents
+                });
+                return Ok(result);
+            }
+
+            var resultWithCount = new List<object>();
+            foreach (var gs in gradeSubjects)
+            {
+                var studentCount = await _context.StudentSubjects
+                    .CountAsync(ss => ss.SubjectId == gs.SubjectId
+                                   && ss.Student.GradeId == gradeId
+                                   && ss.IsActive);
+                resultWithCount.Add(new
+                {
+                    Id = gs.Subject.Id,
+                    Name = gs.Subject.Name,
+                    Code = gs.Subject.Code,
+                    IsOptional = gs.IsOptional,
+                    AutoAssignToStudents = gs.AutoAssignToStudents,
+                    StudentCount = studentCount
+                });
+            }
+            return Ok(resultWithCount);
+        }
     }
 }

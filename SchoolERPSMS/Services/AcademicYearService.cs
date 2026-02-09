@@ -10,10 +10,10 @@ namespace SchoolErpSMS.Services
         Task<IEnumerable<AcademicYear>> GetAllAcademicYearsAsync();
         Task<AcademicYear> GetActiveAcademicYearAsync();
         Task<AcademicYear> CreateAcademicYearAsync(AcademicYear academicYear);
+        Task<AcademicYear?> UpdateAcademicYearAsync(int id, string name, DateTime startDate, DateTime endDate);
         Task<bool> CloseAcademicYearAsync(int academicYearId);
         Task<AcademicYear?> GetAcademicYearByIdAsync(int academicYearId);
         Task<bool> DeleteAcademicYearAsync(int academicYearId);
-       
     }
 
     public class AcademicYearService : IAcademicYearService
@@ -61,6 +61,19 @@ namespace SchoolErpSMS.Services
             _context.AcademicYears.Add(academicYear);
             await _context.SaveChangesAsync();
 
+            return academicYear;
+        }
+
+        public async Task<AcademicYear?> UpdateAcademicYearAsync(int id, string name, DateTime startDate, DateTime endDate)
+        {
+            var academicYear = await _context.AcademicYears.FindAsync(id);
+            if (academicYear == null)
+                return null;
+
+            academicYear.Name = name?.Trim() ?? academicYear.Name;
+            academicYear.StartDate = startDate;
+            academicYear.EndDate = endDate;
+            await _context.SaveChangesAsync();
             return academicYear;
         }
 

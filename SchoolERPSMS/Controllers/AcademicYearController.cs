@@ -2,6 +2,7 @@ using SchoolErpSMS.DTOs;
 using SchoolErpSMS.Entities;
 using SchoolErpSMS.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace SchoolErpSMS.Controllers
@@ -13,11 +14,16 @@ namespace SchoolErpSMS.Controllers
     {
         private readonly IAcademicYearService _academicYearService;
         private readonly ILogger<AcademicYearsController> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public AcademicYearsController(IAcademicYearService academicYearService, ILogger<AcademicYearsController> logger)
+        public AcademicYearsController(
+            IAcademicYearService academicYearService,
+            ILogger<AcademicYearsController> logger,
+            IWebHostEnvironment env)
         {
             _academicYearService = academicYearService;
             _logger = logger;
+            _env = env;
         }
 
        
@@ -62,10 +68,12 @@ namespace SchoolErpSMS.Controllers
             {
                 if (createAcademicYearDto == null)
                     return BadRequest("Academic year data is required");
+                if (string.IsNullOrWhiteSpace(createAcademicYearDto.Name))
+                    return BadRequest("Academic year name is required");
 
                 var academicYear = new AcademicYear
                 {
-                    Name = createAcademicYearDto.Name,
+                    Name = createAcademicYearDto.Name.Trim(),
                     StartDate = createAcademicYearDto.StartDate,
                     EndDate = createAcademicYearDto.EndDate
                 };
@@ -76,12 +84,33 @@ namespace SchoolErpSMS.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating academic year");
-                return StatusCode(500, "An error occurred while creating the academic year");
+                var message = "An error occurred while creating the academic year.";
+                if (_env.IsDevelopment())
+                {
+                    message += " " + ex.Message;
+                    if (ex.InnerException != null)
+                        message += " Inner: " + ex.InnerException.Message;
+                }
+                return StatusCode(500, message);
             }
         }
 
-       
-       
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<AcademicYear>> UpdateAcademicYear(int id, [FromBody] UpdateAcademicYearDto dto)
+        {
+            if (dto == null)
+                return BadRequest("Academic year data is required");
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest("Academic year name is required");
+
+            var updated = await _academicYearService.UpdateAcademicYearAsync(id, dto.Name, dto.StartDate, dto.EndDate);
+            if (updated == null)
+                return NotFound();
+
+            return Ok(updated);
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteAcademicYear(int id)

@@ -198,7 +198,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 
 // ===== CORS must be one of the first middleware components =====
-app.UseCors("AllowAll"); // In production, use a restricted policy (see comment above)
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {

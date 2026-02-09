@@ -134,6 +134,18 @@ const allMenuItems = [
                 roles: ['Admin','Staff']
             },
             { 
+                label: 'Assign Subject to Grade', 
+                icon: 'pi pi-fw pi-link', 
+                to: '/app/subject-grade/assignments',
+                roles: ['Admin', 'Staff']
+            },
+            { 
+                label: 'Bulk Assign to Class', 
+                icon: 'pi pi-fw pi-users', 
+                to: '/app/subject-grade/bulk-assign',
+                roles: ['Admin', 'Staff']
+            },
+            { 
                 label: 'Teacher Assignments', 
                 icon: 'pi pi-fw pi-user-edit', 
                 to: '/app/teacher-subject/assignments',
@@ -162,6 +174,7 @@ const allMenuItems = [
                 to: '/app/manage-exams',
                 roles: ['Admin']
             },
+            // Academic Year creation (reference: Bluebird-Vue) — same label, icon, path, roles
             { 
                 label: 'Academic Years', 
                 icon: 'pi pi-fw pi-graduation-cap', 

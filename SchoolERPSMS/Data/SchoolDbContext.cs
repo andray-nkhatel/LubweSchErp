@@ -58,12 +58,17 @@ namespace SchoolErpSMS.Data
                       .WithMany(e => e.GradeSubjects)
                       .HasForeignKey(e => e.GradeId)
                       .OnDelete(DeleteBehavior.Cascade);
-                
+
                 entity.HasOne(e => e.Subject)
                       .WithMany(e => e.GradeSubjects)
                       .HasForeignKey(e => e.SubjectId)
                       .OnDelete(DeleteBehavior.Cascade);
-                
+
+                entity.HasOne(e => e.AcademicYear)
+                      .WithMany()
+                      .HasForeignKey(e => e.AcademicYearId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(e => new { e.GradeId, e.SubjectId }).IsUnique();
             });
 
@@ -90,12 +95,19 @@ namespace SchoolErpSMS.Data
                       .WithMany(e => e.StudentSubjects)
                       .HasForeignKey(e => e.StudentId)
                       .OnDelete(DeleteBehavior.Cascade);
-                
+
                 entity.HasOne(e => e.Subject)
                       .WithMany(e => e.StudentSubjects)
                       .HasForeignKey(e => e.SubjectId)
                       .OnDelete(DeleteBehavior.Cascade);
-                
+
+                entity.HasOne(e => e.InheritedFromGrade)
+                      .WithMany()
+                      .HasForeignKey(e => e.InheritedFromGradeId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.Property(e => e.SourceType).HasConversion<int>();
+
                 entity.HasIndex(e => new { e.StudentId, e.SubjectId }).IsUnique();
             });
 
