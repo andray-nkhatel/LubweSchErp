@@ -1,10 +1,12 @@
 # Frontend production: serve a pre-built dist with nginx (no build on the server).
 #
+# API URL is set in SchoolERPSMSClient/.env.production (http://104.248.222.220:8080/api).
+#
 # Workflow:
-#   1. Build the frontend once (locally or in CI):
+#   1. Build the frontend once (locally or in CI). .env.production is used automatically:
 #        cd SchoolERPSMSClient
 #        npm ci
-#        VITE_API_BASE_URL=https://your-api.example.com/api npm run build
+#        npm run build
 #   2. From repo root, build the image (only copies dist, no npm on the server):
 #        docker compose -f docker-compose.frontend.production.yml build
 #   3. Run:

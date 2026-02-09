@@ -54,11 +54,11 @@ See [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md) for production deployment instruction
 
 To avoid running the long `npm install` + `vite build` on a weak VPS, you can build the frontend once (locally or in CI) and then only serve the static files with nginx:
 
-1. **Build the frontend** (set `VITE_API_BASE_URL` to your API URL):
+1. **Build the frontend** (API URL is in `SchoolERPSMSClient/.env.production` — currently `http://104.248.222.220:8080/api`):
    ```bash
    cd SchoolERPSMSClient
    npm ci
-   VITE_API_BASE_URL=https://your-api.example.com/api npm run build
+   npm run build
    ```
 2. **From repo root**, build and run the production image (copies only `dist`, no Node on the server):
    ```bash

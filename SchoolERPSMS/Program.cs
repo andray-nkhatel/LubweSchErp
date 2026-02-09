@@ -171,7 +171,8 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
     {
         "http://localhost:3000", "http://localhost:80", "http://localhost",
         "http://127.0.0.1:3000", "http://127.0.0.1:80",
-        "https://lubwesecondarysch.com", "http://lubwesecondarysch.com"
+        "https://lubwesecondarysch.com", "http://lubwesecondarysch.com",
+        "http://104.248.222.220", "http://104.248.222.220:3000", "http://104.248.222.220:80"
     };
 
 builder.Services.AddCors(options =>
