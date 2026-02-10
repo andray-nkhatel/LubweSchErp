@@ -94,7 +94,7 @@ public async Task<ActionResult<IEnumerable<GradeDto>>> GetGrades([FromQuery] boo
                 Stream = createGradeDto.Stream,
                 Level = createGradeDto.Level,
                 Section = createGradeDto.Section,
-                HomeroomTeacherId = createGradeDto.HomeroomTeacherId ?? throw new ArgumentNullException(nameof(createGradeDto.HomeroomTeacherId))
+                HomeroomTeacherId = createGradeDto.HomeroomTeacherId
             };
 
             _context.Grades.Add(grade);
