@@ -132,6 +132,7 @@
 
 <script setup>
 import { authService, examService, gradeService, reportService, studentService } from '@/service/api.service';
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -265,7 +266,7 @@ const generateClassReportCards = async () => {
             const studentInfo = assignedStudents.value.find((s) => s.id === report.studentId);
             return {
                 ...report,
-                studentName: studentInfo?.fullName || 'Unknown Student',
+                studentName: formatStudentLastNameFirst(studentInfo || {}) || 'Unknown Student',
                 gradeName: studentInfo?.gradeName || 'Unknown Grade'
             };
         });

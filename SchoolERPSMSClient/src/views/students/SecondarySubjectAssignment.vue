@@ -17,7 +17,7 @@
           paginator 
           :rows="30" 
           :rowsPerPageOptions="[5, 10, 20, 50]"
-          sortField="fullName" 
+          sortField="displayName"
           :sortOrder="1"
           :emptyMessage="loading ? 'Loading students...' : 'No students found'"
           class="p-datatable-sm"
@@ -333,6 +333,7 @@
 
 <script setup>
 import { secondarySubjectService } from '@/service/api.service'
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -371,6 +372,7 @@ const filteredStudents = computed(() => {
   
   const query = searchQuery.value.toLowerCase().trim()
   return students.value.filter(student => 
+    (student.displayName && student.displayName.toLowerCase().includes(query)) ||
     (student.fullName && student.fullName.toLowerCase().includes(query)) ||
     (student.studentNumber && student.studentNumber.toLowerCase().includes(query)) ||
     (student.gradeName && student.gradeName.toLowerCase().includes(query)) ||
@@ -383,7 +385,8 @@ const loadStudents = async () => {
   loading.value = true
   try {
     const response = await secondarySubjectService.getSecondaryStudents()
-    students.value = response.data || []
+    const raw = response.data || []
+    students.value = raw.map(s => ({ ...s, displayName: formatStudentLastNameFirst(s) }))
   } catch (error) {
     console.error('Error loading students:', error)
     students.value = [] // Ensure we always have an array

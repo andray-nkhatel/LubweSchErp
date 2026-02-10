@@ -152,15 +152,15 @@
               </template>
             </Column>
   
-            <Column field="fullName" header="Full Name" style="min-width: 200px">
+            <Column field="displayName" header="Full Name" sortable style="min-width: 200px">
               <template #body="{ data }">
                 <div class="flex align-items-center gap-2">
                   <Avatar 
-                    :label="data.firstName.charAt(0) + data.lastName.charAt(0)" 
+                    :label="(data.firstName || '').charAt(0) + (data.lastName || '').charAt(0)" 
                     size="small"
                     style="background-color: #e3f2fd; color: #1976d2"
                   />
-                  <span class="font-medium">{{ data.fullName }}</span>
+                  <span class="font-medium">{{ data.displayName }}</span>
                 </div>
               </template>
             </Column>
@@ -365,6 +365,7 @@ import { gradeService, studentService } from '@/service/api.service'; // Adjust 
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay';
   
   // Emits
   const emit = defineEmits(['back', 'studentsPromoted'])
@@ -474,8 +475,10 @@ import { useRouter } from 'vue-router';
     
     try {
       const students = await studentService.getByGrade(selectedFromGrade.value)
-      // Filter only active students
-      studentsToPromote.value = students.filter(student => student.isActive && !student.isArchived)
+      // Filter only active students; add displayName (LastName FirstName) for table
+      studentsToPromote.value = students
+        .filter(student => student.isActive && !student.isArchived)
+        .map(s => ({ ...s, displayName: formatStudentLastNameFirst(s) }))
       studentsLoaded.value = true
       promotionResults.value = null
       updateGradeInfo()

@@ -44,7 +44,7 @@
           paginator 
           :rows="30" 
           :rowsPerPageOptions="[5, 10, 20, 50]"
-          sortField="fullName" 
+          sortField="displayName"
           :sortOrder="1"
           :emptyMessage="loading ? 'Loading students...' : 'No students found'"
           class="p-datatable-sm"
@@ -102,12 +102,11 @@
             </div>
           </template>
 
-          <!-- Student Name Column -->
-          <Column field="fullName" header="Student" sortable>
+          <!-- Student Name Column (LastName FirstName for alphabetical order) -->
+          <Column field="displayName" header="Student" sortable>
             <template #body="{ data }">
               <div class="flex flex-column">
-                <span class="font-semibold">{{ data.fullName }}</span>
-                <!-- <span class="text-sm text-500">{{ data.studentNumber }}</span> -->
+                <span class="font-semibold">{{ data.displayName }}</span>
               </div>
             </template>
           </Column>
@@ -401,6 +400,7 @@
 
 <script setup>
 import { homeroomService, subjectService } from '@/service/api.service'
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -444,6 +444,7 @@ const filteredStudents = computed(() => {
   
   const query = searchQuery.value.toLowerCase().trim()
   return students.value.filter(student => 
+    (student.displayName && student.displayName.toLowerCase().includes(query)) ||
     (student.fullName && student.fullName.toLowerCase().includes(query)) ||
     (student.studentNumber && student.studentNumber.toLowerCase().includes(query)) ||
     (student.gradeName && student.gradeName.toLowerCase().includes(query)) ||

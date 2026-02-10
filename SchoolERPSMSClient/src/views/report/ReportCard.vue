@@ -284,6 +284,7 @@
 
 <script setup>
 import { examService, gradeService, reportService, studentService } from '@/service/api.service';
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
@@ -575,7 +576,7 @@ const generateClassReportCards = async () => {
             const studentInfo = students.value.find((s) => s.id === report.studentId);
             return {
                 ...report,
-                studentName: studentInfo?.fullName || 'Unknown Student',
+                studentName: formatStudentLastNameFirst(studentInfo || {}) || 'Unknown Student',
                 gradeName: studentInfo?.gradeName || 'Unknown Grade'
             };
         });

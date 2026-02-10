@@ -168,6 +168,7 @@
 
 <script>
 import { examService, homeroomService, reportService } from '@/service/api.service';
+import { formatStudentLastNameFirst } from '@/utils/studentDisplay';
 
 export default {
   name: 'HomeroomGeneralComments',
@@ -264,12 +265,17 @@ export default {
         });
 
         const results = await Promise.all(commentPromises);
-        this.students = results.map(r => ({
-          studentId: r.id,
-          studentName: r.name,
-          generalComment: r.comment,
-          reportCardId: r.reportCardId
-        })).sort((a, b) => a.studentName.localeCompare(b.studentName));
+        this.students = gradeStudents.map((s, i) => {
+          const r = results[i];
+          return {
+            studentId: s.id,
+            studentName: formatStudentLastNameFirst(s),
+            studentFirstName: s.firstName,
+            studentLastName: s.lastName,
+            generalComment: r.comment,
+            reportCardId: r.reportCardId
+          };
+        }).sort((a, b) => a.studentName.localeCompare(b.studentName));
       } finally {
         this.loading = false;
       }
@@ -282,9 +288,14 @@ export default {
     },
     openEditNameDialog(student) {
       this.editName.student = student;
-      const parts = (student.studentName || '').split(' ');
-      this.editName.firstName = parts[0] || '';
-      this.editName.lastName = parts.slice(1).join(' ') || '';
+      if (student.studentFirstName != null || student.studentLastName != null) {
+        this.editName.firstName = student.studentFirstName ?? '';
+        this.editName.lastName = student.studentLastName ?? '';
+      } else {
+        const parts = (student.studentName || '').trim().split(/\s+/);
+        this.editName.lastName = parts[0] || '';
+        this.editName.firstName = parts.slice(1).join(' ') || '';
+      }
       this.editName.middleName = '';
       this.editName.visible = true;
     },
@@ -297,11 +308,13 @@ export default {
           middleName: this.editName.middleName,
           lastName: this.editName.lastName
         });
-        // Normalize response wrapper { success, data }
         const updated = resp?.data || resp;
-        const fullName = updated?.fullName || `${this.editName.firstName} ${this.editName.lastName}`.trim();
-        // Update local student
-        this.editName.student.studentName = fullName;
+        const first = updated?.firstName ?? this.editName.firstName;
+        const last = updated?.lastName ?? this.editName.lastName;
+        const displayName = `${(last || '').trim()} ${(first || '').trim()}`.trim() || this.editName.student.studentName;
+        this.editName.student.studentName = displayName;
+        this.editName.student.studentFirstName = first;
+        this.editName.student.studentLastName = last;
         this.$toast.add({ severity: 'success', summary: 'Success', detail: 'Name updated.', life: 3000 });
         this.editName.visible = false;
       } catch (e) {
@@ -324,7 +337,7 @@ export default {
           // Try to get class report cards again
           const gradeId = this.gradeInfo?.gradeId || this.gradeInfo?.id;
           const classReportCards = await reportService.getClassReportCardIds(gradeId, this.selectedAcademicYear, this.selectedTerm);
-          const rc = classReportCards.find(rc => rc.studentName === this.activeStudent.studentName);
+          const rc = classReportCards.find(rc => rc.studentId === this.activeStudent.studentId) || classReportCards.find(rc => rc.studentName === this.activeStudent.studentName);
           if (rc) {
             reportCardId = rc.id;
             this.activeStudent.reportCardId = reportCardId;

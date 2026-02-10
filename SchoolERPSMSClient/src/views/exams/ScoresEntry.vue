@@ -1772,6 +1772,13 @@ export default {
   },
 
   methods: {
+    /** Display/sort key: "LastName FirstName" (e.g. "Banda Anna") for alphabetical order by last name first */
+    formatStudentLastNameFirst(student) {
+      const last = (student.lastName ?? student.LastName ?? '').trim()
+      const first = (student.firstName ?? student.FirstName ?? '').trim()
+      return `${last} ${first}`.trim() || (student.fullName ?? student.FullName ?? '')
+    },
+
     maybeOpenTeacherSummaryFromQuery() {
       if (!this.openTeacherSummaryRequested) return
       // Require secondary section and options to be available
@@ -2819,7 +2826,9 @@ export default {
             const existingScore = relevantScores.find(score => score.studentId === student.id)
             return {
               studentId: student.id,
-              studentName: student.fullName,
+              studentName: this.formatStudentLastNameFirst(student),
+              studentFirstName: student.firstName ?? student.FirstName,
+              studentLastName: student.lastName ?? student.LastName,
               studentNumber: student.studentNumber,
               currentScore: existingScore ? existingScore.score : null,
               scoreId: existingScore ? existingScore.id : null,
@@ -2889,11 +2898,13 @@ export default {
         );
         const classAssessments = classAssessmentsResp?.data ?? classAssessmentsResp ?? [];
 
-        // Process assessments into student data
+        // Process assessments into student data (display "LastName FirstName", sort alphabetically by last name)
         this.students = gradeStudents.map(student => {
           return {
             studentId: student.id,
-            studentName: student.fullName,
+            studentName: this.formatStudentLastNameFirst(student),
+            studentFirstName: student.firstName ?? student.FirstName,
+            studentLastName: student.lastName ?? student.LastName,
             studentNumber: student.studentNumber,
             isAbsent: false, // BabyClass doesn't use absent status
             toggleLoading: false
@@ -2956,7 +2967,9 @@ export default {
         // Fall back to showing students even if assessments fail to load
         this.students = gradeStudents.map(student => ({
           studentId: student.id,
-          studentName: student.fullName,
+          studentName: this.formatStudentLastNameFirst(student),
+          studentFirstName: student.firstName ?? student.FirstName,
+          studentLastName: student.lastName ?? student.LastName,
           studentNumber: student.studentNumber,
           isAbsent: false,
           toggleLoading: false
@@ -3138,9 +3151,15 @@ export default {
 
     openEditNameDialog(student) {
       this.editName.student = student;
-      const parts = (student.studentName || '').split(' ');
-      this.editName.firstName = parts[0] || '';
-      this.editName.lastName = parts.slice(1).join(' ') || '';
+      // Prefer stored first/last (row uses "LastName FirstName" display)
+      if (student.studentFirstName != null || student.studentLastName != null) {
+        this.editName.firstName = student.studentFirstName ?? '';
+        this.editName.lastName = student.studentLastName ?? '';
+      } else {
+        const parts = (student.studentName || '').trim().split(/\s+/);
+        this.editName.lastName = parts[0] || '';
+        this.editName.firstName = parts.slice(1).join(' ') || '';
+      }
       this.editName.middleName = '';
       this.editName.visible = true;
     },
@@ -3156,23 +3175,32 @@ export default {
         });
         // Normalize response wrapper { success, data }
         const updated = resp?.data || resp;
-        const fullName = updated?.fullName || `${this.editName.firstName} ${this.editName.lastName}`.trim();
-        
-        // Update local student data
-        this.editName.student.studentName = fullName;
-        
-        // Update in students array
+        const first = updated?.firstName ?? this.editName.firstName;
+        const last = updated?.lastName ?? this.editName.lastName;
+        const displayName = `${(last || '').trim()} ${(first || '').trim()}`.trim() || this.editName.student.studentName;
+
+        // Update local student data (display "LastName FirstName")
+        this.editName.student.studentName = displayName;
+        this.editName.student.studentFirstName = first;
+        this.editName.student.studentLastName = last;
+
         const studentIndex = this.students.findIndex(s => s.studentId === this.editName.student.studentId);
         if (studentIndex !== -1) {
-          this.students[studentIndex].studentName = fullName;
+          this.students[studentIndex].studentName = displayName;
+          this.students[studentIndex].studentFirstName = first;
+          this.students[studentIndex].studentLastName = last;
         }
-        
-        // Update in originalStudents array
+
         const originalIndex = this.originalStudents.findIndex(s => s.studentId === this.editName.student.studentId);
         if (originalIndex !== -1) {
-          this.originalStudents[originalIndex].studentName = fullName;
+          this.originalStudents[originalIndex].studentName = displayName;
+          this.originalStudents[originalIndex].studentFirstName = first;
+          this.originalStudents[originalIndex].studentLastName = last;
         }
-        
+
+        this.students.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || ''));
+        this.originalStudents.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || ''));
+
         this.showSuccess('Name updated successfully');
         this.editName.visible = false;
       } catch (e) {
@@ -4181,7 +4209,7 @@ export default {
         })
         
         this.addStudentsDialog.availableStudents.sort((a, b) => 
-          (a.fullName || '').localeCompare(b.fullName || '')
+          this.formatStudentLastNameFirst(a).localeCompare(this.formatStudentLastNameFirst(b))
         )
 
       } catch (error) {
@@ -4264,12 +4292,14 @@ export default {
           // If loading scores fails, we'll just add students without existing scores
         }
 
-        // Add students to the list
+        // Add students to the list (display "LastName FirstName", sort by last name)
         const newStudents = selectedStudentsData.map(student => {
           const existingScore = relevantScores.find(score => score.studentId === student.id)
           return {
             studentId: student.id,
-            studentName: student.fullName,
+            studentName: this.formatStudentLastNameFirst(student),
+            studentFirstName: student.firstName ?? student.FirstName,
+            studentLastName: student.lastName ?? student.LastName,
             studentNumber: student.studentNumber,
             currentScore: existingScore ? existingScore.score : null,
             scoreId: existingScore ? existingScore.id : null,

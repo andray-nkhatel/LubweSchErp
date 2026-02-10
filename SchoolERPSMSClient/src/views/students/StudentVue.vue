@@ -76,11 +76,10 @@
           </template>
         </Column>
 
-        <Column field="fullName" header="Full Name" sortable style="min-width: 200px">
+        <Column field="displayName" header="Full Name" sortable style="min-width: 200px">
           <template #body="{ data }">
             <div class="flex flex-column gap-1">
-              <span class="font-medium">{{ data.fullName}}</span>
-              <!-- <small class="text-500">{{ data.firstName }} {{ data.middleName }} {{ data.lastName }}</small> -->
+              <span class="font-medium">{{ data.displayName }}</span>
             </div>
           </template>
         </Column>
@@ -134,7 +133,7 @@
       <div class="flex align-items-center justify-content-center">
         <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)" />
         <span v-if="selectedStudent">
-          Are you sure you want to delete <strong>{{ selectedStudent.fullName }}</strong>?
+          Are you sure you want to delete <strong>{{ selectedStudent.displayName || selectedStudent.fullName }}</strong>?
           <br>
           <small class="text-500">This action cannot be undone.</small>
         </span>
@@ -162,6 +161,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { gradeService, studentService } from '../../service/api.service';
+import { formatStudentLastNameFirst } from '../../utils/studentDisplay';
 
 const router = useRouter();
 
@@ -171,7 +171,7 @@ const loading = ref(false)
 const includeArchived = ref(false)
 const globalFilter = ref('')
 const selectedGradeId = ref(null)
-const sortField = ref('fullName')
+const sortField = ref('displayName')
 const sortOrder = ref(1)
 
 // Grade filter state
@@ -224,6 +224,7 @@ const filteredStudents = computed(() => {
         student.firstName || '',
         student.lastName || '',
         student.fullName || '',
+        student.displayName || '',
         student.studentNumber || '',
         student.gradeName || '',
         student.guardianName || '',
@@ -264,6 +265,7 @@ const loadStudents = async () => {
       firstName: String(s.firstName || ''),
       lastName: String(s.lastName || ''),
       fullName: String(s.fullName || `${s.firstName || ''} ${s.lastName || ''}`.trim()),
+      displayName: formatStudentLastNameFirst(s),
       studentNumber: String(s.studentNumber || ''),
       gradeName: String(s.gradeName || ''),
       // Preserve gradeId (might be gradeId or grade?.id)
