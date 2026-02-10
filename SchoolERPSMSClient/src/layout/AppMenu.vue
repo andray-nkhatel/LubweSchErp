@@ -90,12 +90,6 @@ const allMenuItems = [
             //     to: '/app/students/promotion',
             //     roles: ['Admin','Staff']
             // },
-            { 
-                label: 'Secondary Subject Assignment', 
-                icon: 'pi pi-fw pi-graduation-cap', 
-                to: '/app/students/secondary-subjects',
-                roles: ['Admin','Staff']
-            },
         ]
     },
     {
@@ -132,12 +126,6 @@ const allMenuItems = [
                 icon: 'pi pi-fw pi-book', 
                 to: '/app/subjects',
                 roles: ['Admin','Staff']
-            },
-            { 
-                label: 'Assign Subject to Grade', 
-                icon: 'pi pi-fw pi-link', 
-                to: '/app/subject-grade/assignments',
-                roles: ['Admin', 'Staff']
             },
             { 
                 label: 'Bulk Assign to Class', 

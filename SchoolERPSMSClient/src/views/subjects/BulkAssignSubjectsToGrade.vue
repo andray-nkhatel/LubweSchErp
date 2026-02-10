@@ -36,7 +36,7 @@
               optionValue="id"
               placeholder="Select subjects"
               display="chip"
-              :loading="loadingSubjects"
+              :loading="loadingSubjects || loadingGradeSubjects"
               :class="{ 'p-invalid': submitted && (!selectedSubjects || selectedSubjects.length === 0) }"
               class="w-full"
             >
@@ -136,7 +136,20 @@ export default {
       loadingSubjects: false,
       loadingGrades: false,
       loadingAcademicYears: false,
+      loadingGradeSubjects: false,
       submitted: false
+    }
+  },
+
+  watch: {
+    selectedGrade: {
+      handler(newVal) {
+        if (!newVal) {
+          this.selectedSubjects = []
+          return
+        }
+        this.loadExistingGradeSubjects()
+      }
     }
   },
 
@@ -145,6 +158,21 @@ export default {
   },
 
   methods: {
+    async loadExistingGradeSubjects() {
+      if (!this.selectedGrade) return
+      try {
+        this.loadingGradeSubjects = true
+        const list = await subjectService.getGradeSubjectsWithInheritance(this.selectedGrade, false)
+        const arr = Array.isArray(list) ? list : list?.data || []
+        this.selectedSubjects = arr.map((s) => (typeof s === 'object' && s.id != null) ? s.id : s)
+      } catch (error) {
+        console.error('Error loading grade subjects:', error)
+        this.selectedSubjects = []
+      } finally {
+        this.loadingGradeSubjects = false
+      }
+    },
+
     async loadData() {
       await Promise.all([
         this.loadSubjects(),
@@ -237,9 +265,14 @@ export default {
           bulkData
         )
 
-        let detailMessage = `Successfully assigned ${this.selectedSubjects.length} subject(s) to grade`
-        if (this.autoAssignToStudents && response) {
-          if (response.studentsAssigned > 0) {
+        let detailMessage = `Successfully updated grade subjects`
+        if (response) {
+          const parts = []
+          if (response.subjectsAssigned > 0) parts.push(`${response.subjectsAssigned} assigned`)
+          if (response.subjectsUpdated > 0) parts.push(`${response.subjectsUpdated} updated`)
+          if (response.subjectsDeassigned > 0) parts.push(`${response.subjectsDeassigned} removed`)
+          if (parts.length) detailMessage += `: ${parts.join(', ')}`
+          if (this.autoAssignToStudents && response.studentsAssigned > 0) {
             detailMessage += `. ${response.studentsAssigned} student assignment(s) created`
           }
         }

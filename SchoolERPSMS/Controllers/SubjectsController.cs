@@ -738,16 +738,31 @@ public class TransferAssignmentsDto
             var grade = await _context.Grades.FindAsync(gradeId);
             if (grade == null) return NotFound("Grade not found");
 
+            var subjectIdsSet = bulkDto.SubjectIds?.ToHashSet() ?? new HashSet<int>();
             var subjects = await _context.Subjects
-                .Where(s => bulkDto.SubjectIds.Contains(s.Id))
+                .Where(s => subjectIdsSet.Contains(s.Id))
                 .ToListAsync();
 
-            if (subjects.Count != bulkDto.SubjectIds.Count)
+            if (subjects.Count != subjectIdsSet.Count)
                 return BadRequest(new { message = "One or more subjects not found" });
 
             var assignedCount = 0;
             var updatedCount = 0;
+            var deassignedCount = 0;
             var studentAssignments = 0;
+
+            // Deassign: soft-deactivate grade subjects that are no longer in the selected list
+            var currentGradeSubjects = await _context.GradeSubjects
+                .Where(gs => gs.GradeId == gradeId && gs.IsActive)
+                .ToListAsync();
+            foreach (var gs in currentGradeSubjects)
+            {
+                if (!subjectIdsSet.Contains(gs.SubjectId))
+                {
+                    gs.IsActive = false;
+                    deassignedCount++;
+                }
+            }
 
             foreach (var subject in subjects)
             {
@@ -769,6 +784,7 @@ public class TransferAssignmentsDto
                 }
                 else
                 {
+                    existingAssignment.IsActive = true;
                     existingAssignment.AutoAssignToStudents = bulkDto.AutoAssignToStudents;
                     existingAssignment.AcademicYearId = bulkDto.AcademicYearId;
                     updatedCount++;
@@ -823,6 +839,7 @@ public class TransferAssignmentsDto
                 message = "Bulk assignment completed",
                 subjectsAssigned = assignedCount,
                 subjectsUpdated = updatedCount,
+                subjectsDeassigned = deassignedCount,
                 studentsAssigned = studentAssignments
             });
         }
