@@ -30,17 +30,6 @@
     </div>
     
     <div class="mb-2">
-      <label for="stream">Stream</label>
-      <Dropdown 
-        id="stream" 
-        class="w-full"
-        v-model="newGrade.stream" 
-        :options="streamOptions" 
-        placeholder="Select stream"
-      />
-    </div>
-    
-    <div class="mb-2">
     <label for="section">Section</label>
     <Dropdown 
       id="section" 
@@ -589,7 +578,7 @@ const saveGrade = async () => {
   
   try {
     // Validate required fields
-    if (!newGrade.name || !newGrade.fullName || !newGrade.stream || !newGrade.section) {
+    if (!newGrade.name || !newGrade.fullName || !newGrade.section) {
       toast.add({
         severity: 'warn',
         summary: 'Validation Error',
@@ -619,7 +608,7 @@ const saveGrade = async () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: `Grade "${newGrade.name} ${newGrade.stream}" has been created successfully`,
+      detail: `Grade "${newGrade.name}${newGrade.stream ? ' ' + newGrade.stream : ''}" has been created successfully`,
       life: 3000
     })
     
