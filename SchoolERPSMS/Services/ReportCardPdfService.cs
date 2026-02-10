@@ -58,20 +58,12 @@ namespace SchoolErpSMS.Services
 
                 switch (student.Grade.Section)
                 {
-                    case SchoolSection.EarlyLearningBeginner:
-                        return await GenerateEarlyLearningBeginnerReportCardAsync(student, examScores, academicYear, term);
-                    case SchoolSection.EarlyLearningIntermediate:
-                        return await GenerateEarlyLearningIntermediateReportCardAsync(student, examScores,academicYear, term);
-                    case SchoolSection.PrimaryLower:
-                        return await GeneratePrimaryLowerReportCardAsync(student, examScores, academicYear, term);
-                    case SchoolSection.PrimaryUpper:
-                        return await GeneratePrimaryUpperReportCardAsync(student, examScores, academicYear, term);
-                    case SchoolSection.SecondaryJunior:
+                    case SchoolSection.NeoSecondary:
                         return await GenerateSecondaryJuniorReportCardAsync(student, examScores, academicYear, term);
-                    case SchoolSection.SecondarySenior:
+                    case SchoolSection.LegacySecondary:
                         return await GenerateSecondarySeniorReportCardAsync(student, examScores, academicYear, term);
                     default:
-                        throw new InvalidOperationException("Unknown school section");
+                        throw new InvalidOperationException($"Unknown school section: {student.Grade.Section}");
                 }
             }
             catch (Exception ex)
@@ -105,20 +97,12 @@ namespace SchoolErpSMS.Services
 
                 switch (student.Grade.Section)
                 {
-                    case SchoolSection.EarlyLearningBeginner:
-                        return await GenerateEarlyLearningBeginnerReportCardAsync(reportCardId, student, examScores, academicYear, term);
-                    case SchoolSection.EarlyLearningIntermediate:
-                        return await GenerateEarlyLearningIntermediateReportCardAsync(reportCardId, student, examScores, academicYear, term);
-                    case SchoolSection.PrimaryLower:
-                        return await GeneratePrimaryLowerReportCardAsync(reportCardId, student, examScores, academicYear, term);
-                    case SchoolSection.PrimaryUpper:
-                        return await GeneratePrimaryUpperReportCardAsync(reportCardId, student, examScores, academicYear, term);
-                    case SchoolSection.SecondaryJunior:
+                    case SchoolSection.NeoSecondary:
                         return await GenerateSecondaryJuniorReportCardAsync(reportCardId, student, examScores, academicYear, term);
-                    case SchoolSection.SecondarySenior:
+                    case SchoolSection.LegacySecondary:
                         return await GenerateSecondarySeniorReportCardAsync(reportCardId, student, examScores, academicYear, term);
                     default:
-                        throw new InvalidOperationException("Unknown school section");
+                        throw new InvalidOperationException($"Unknown school section: {student.Grade.Section}");
                 }
             }
             catch (Exception ex)
@@ -202,7 +186,7 @@ namespace SchoolErpSMS.Services
             List<Subject> studentSubjects;
 
             // Check if student is in secondary section - use new flexible subject assignment
-            if (student.Grade?.Section == SchoolSection.SecondaryJunior || student.Grade?.Section == SchoolSection.SecondarySenior)
+            if (student.Grade?.Section == SchoolSection.NeoSecondary || student.Grade?.Section == SchoolSection.LegacySecondary)
             {
                 // Use the new ultra-flexible subject assignment system for secondary students
                 var studentSubjectAssignments = await context.StudentSubjects

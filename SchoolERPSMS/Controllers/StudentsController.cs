@@ -406,10 +406,8 @@ namespace SchoolErpSMS.Controllers
                 // Get maximum optional subjects for the grade section
                 var maxOptionalSubjects = student.Grade?.Section switch
                 {
-                    SchoolSection.PrimaryLower => 0,
-                    SchoolSection.PrimaryUpper => 2,
-                    SchoolSection.SecondaryJunior => 3,
-                    SchoolSection.SecondarySenior => 3,
+                    SchoolSection.NeoSecondary => 3,
+                    SchoolSection.LegacySecondary => 3,
                     _ => 0
                 };
 
@@ -549,10 +547,8 @@ namespace SchoolErpSMS.Controllers
                         // Get maximum optional subjects for the grade section
                         var maxOptionalSubjects = student.Grade?.Section switch
                         {
-                            SchoolSection.PrimaryLower => 0,
-                            SchoolSection.PrimaryUpper => 2,
-                            SchoolSection.SecondaryJunior => 3,
-                            SchoolSection.SecondarySenior => 3,
+                            SchoolSection.NeoSecondary => 3,
+                            SchoolSection.LegacySecondary => 3,
                             _ => 0
                         };
 

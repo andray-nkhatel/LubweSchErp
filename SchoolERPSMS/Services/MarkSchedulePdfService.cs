@@ -54,7 +54,7 @@ namespace SchoolErpSMS.Services
                     
                     // Calculate points for Senior Secondary only
                     int points = 0;
-                    if (gradeSection == SchoolSection.SecondarySenior)
+                    if (gradeSection == SchoolSection.LegacySecondary)
                     {
                         points = GetSecondarySeniorGrade(scoreValue);
                     }
@@ -65,22 +65,7 @@ namespace SchoolErpSMS.Services
                 decimal total;
                 decimal totalPoints = 0;
                 
-                if (gradeSection == SchoolSection.PrimaryUpper)
-                {
-                    // For Upper Primary: SP1 + SP2 + 4 highest scoring subjects (excluding SP1 and SP2)
-                    var sp1Score = subjectScoreMap.GetValueOrDefault("SP1", 0);
-                    var sp2Score = subjectScoreMap.GetValueOrDefault("SP2", 0);
-                    
-                    // Get other subjects (excluding SP1 and SP2) and sort by score descending
-                    var otherSubjects = subjectScoreMap
-                        .Where(kvp => kvp.Key != "SP1" && kvp.Key != "SP2")
-                        .OrderByDescending(kvp => kvp.Value)
-                        .Take(4)
-                        .Sum(kvp => kvp.Value);
-                    
-                    total = sp1Score + sp2Score + otherSubjects;
-                }
-                else if (gradeSection == SchoolSection.SecondarySenior)
+                if (gradeSection == SchoolSection.LegacySecondary)
                 {
                     // For Senior Secondary: English + 5 highest scoring subjects (excluding English)
                     var englishScore = subjectScoreMap.GetValueOrDefault("English", 0);
@@ -99,7 +84,7 @@ namespace SchoolErpSMS.Services
                     total = englishScore + otherSubjectsTotal;
                     totalPoints = englishPoints + otherSubjectsPoints;
                 }
-                else if (gradeSection == SchoolSection.SecondaryJunior)
+                else if (gradeSection == SchoolSection.NeoSecondary)
                 {
                     // For Junior Secondary: 6 best scores (standard calculation)
                     var bestSixScores = subjectScores
@@ -232,12 +217,9 @@ namespace SchoolErpSMS.Services
                             var studentIds = students.Select(s => s.Id).ToList();
                             
                             var subjects = allSubjects.Where(sub => gradeSubjectIds.Contains(sub.Id) && 
-                                (grade.Section == SchoolSection.PrimaryLower || grade.Section == SchoolSection.PrimaryUpper ? 
-                                sub.Name != "MDE" && sub.Name != "French" && sub.Name != "Reading" : 
-                                (grade.Section == SchoolSection.SecondaryJunior || grade.Section == SchoolSection.SecondarySenior ? 
+                                (grade.Section == SchoolSection.NeoSecondary || grade.Section == SchoolSection.LegacySecondary) &&
                                 sub.Name != "MDE" && (allGradeSubjects.First(gs => gs.SubjectId == sub.Id && gs.GradeId == grade.Id).IsOptional == false || 
-                                _context.StudentOptionalSubjects.Any(sos => sos.SubjectId == sub.Id && studentIds.Contains(sos.StudentId))) :
-                                true))).OrderBy(s => s.Name).ToList();
+                                _context.StudentOptionalSubjects.Any(sos => sos.SubjectId == sub.Id && studentIds.Contains(sos.StudentId)))).OrderBy(s => s.Name).ToList();
 
                             if (subjects.Count == 0)
                                 continue;
@@ -272,7 +254,7 @@ namespace SchoolErpSMS.Services
                             col.Item().PaddingTop(20).Text($"{grade.FullName}").FontSize(13).Bold().AlignLeft();
                             col.Item().Table(table =>
                             {
-                                bool isSeniorSecondary = grade.Section == SchoolSection.SecondarySenior;
+                                bool isSeniorSecondary = grade.Section == SchoolSection.LegacySecondary;
                                 
                                 // Define columns: Student Name + (Subjects) + Total + (Points for Senior Secondary only) + Position
                                 table.ColumnsDefinition(columns =>
@@ -435,12 +417,9 @@ namespace SchoolErpSMS.Services
 
             // 6. Filter subjects based on grade section
             var subjects = allSubjects.Where(sub => gradeSubjectIds.Contains(sub.Id) && 
-                (grade.Section == SchoolSection.PrimaryLower || grade.Section == SchoolSection.PrimaryUpper ? 
-                sub.Name != "MDE" && sub.Name != "French" && sub.Name != "Reading" : 
-                (grade.Section == SchoolSection.SecondaryJunior || grade.Section == SchoolSection.SecondarySenior ? 
+                (grade.Section == SchoolSection.NeoSecondary || grade.Section == SchoolSection.LegacySecondary) &&
                 sub.Name != "MDE" && (allGradeSubjects.First(gs => gs.SubjectId == sub.Id && gs.GradeId == gradeId).IsOptional == false || 
-                _context.StudentOptionalSubjects.Any(sos => sos.SubjectId == sub.Id && students.Select(s => s.Id).Contains(sos.StudentId))) :
-                true))).OrderBy(s => s.Name).ToList();
+                _context.StudentOptionalSubjects.Any(sos => sos.SubjectId == sub.Id && students.Select(s => s.Id).Contains(sos.StudentId)))).OrderBy(s => s.Name).ToList();
 
             if (subjects.Count == 0)
                 throw new ArgumentException($"No subjects found for grade {gradeId}");
@@ -468,7 +447,7 @@ namespace SchoolErpSMS.Services
                         // Table for this specific grade
                         col.Item().Table(table =>
                         {
-                            bool isSeniorSecondary = grade.Section == SchoolSection.SecondarySenior;
+                            bool isSeniorSecondary = grade.Section == SchoolSection.LegacySecondary;
                             
                             // Define columns: Student Name + (Subjects) + Total + (Points for Senior Secondary only) + Position
                             table.ColumnsDefinition(columns =>

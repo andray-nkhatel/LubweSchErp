@@ -41,7 +41,7 @@ namespace SchoolErpSMS.Services
                     
                     // Calculate points for Senior Secondary only
                     int points = 0;
-                    if (gradeSection == SchoolSection.SecondarySenior)
+                    if (gradeSection == SchoolSection.LegacySecondary)
                     {
                         points = GetSecondarySeniorGrade(scoreValue);
                     }
@@ -53,7 +53,7 @@ namespace SchoolErpSMS.Services
                 decimal totalPoints = 0;
                 string certificate = "";
                 
-                if (gradeSection == SchoolSection.SecondaryJunior)
+                if (gradeSection == SchoolSection.NeoSecondary)
                 {
                     // For Junior Secondary: 6 best scores
                     var bestSixScores = subjectScores
@@ -65,7 +65,7 @@ namespace SchoolErpSMS.Services
                     // Certificate determination for Junior Secondary
                     certificate = total >= 300 ? "SC" : "SOR";
                 }
-                else if (gradeSection == SchoolSection.SecondarySenior)
+                else if (gradeSection == SchoolSection.LegacySecondary)
                 {
                     // For Senior Secondary: English + 5 highest scoring subjects (excluding English)
                     var englishScore = subjectScoreMap.GetValueOrDefault("English", 0);
@@ -147,7 +147,7 @@ namespace SchoolErpSMS.Services
 
             // 1. Fetch only secondary grades
             var grades = await _context.Grades
-                .Where(g => g.IsActive && (g.Section == SchoolSection.SecondaryJunior || g.Section == SchoolSection.SecondarySenior))
+                .Where(g => g.IsActive && (g.Section == SchoolSection.NeoSecondary || g.Section == SchoolSection.LegacySecondary))
                 .OrderBy(g => g.Level)
                 .ThenBy(g => g.Name)
                 .ThenBy(g => g.Stream)
@@ -245,7 +245,7 @@ namespace SchoolErpSMS.Services
                             col.Item().PaddingTop(20).Text($"{grade.FullName}").FontSize(13).Bold().AlignLeft();
                             col.Item().Table(table =>
                             {
-                                bool isSeniorSecondary = grade.Section == SchoolSection.SecondarySenior;
+                                bool isSeniorSecondary = grade.Section == SchoolSection.LegacySecondary;
                                 
                                 // Define columns: Student Name + (Subjects) + Total + (Points for Senior Secondary only) + Certificate + Position
                                 table.ColumnsDefinition(columns =>
@@ -407,7 +407,7 @@ namespace SchoolErpSMS.Services
 
             // 1. Fetch the specific grade
             var grade = await _context.Grades
-                .FirstOrDefaultAsync(g => g.Id == gradeId && g.IsActive && (g.Section == SchoolSection.SecondaryJunior || g.Section == SchoolSection.SecondarySenior));
+                .FirstOrDefaultAsync(g => g.Id == gradeId && g.IsActive && (g.Section == SchoolSection.NeoSecondary || g.Section == SchoolSection.LegacySecondary));
             
             if (grade == null)
                 throw new ArgumentException($"Secondary grade with ID {gradeId} not found or is not active");
@@ -474,7 +474,7 @@ namespace SchoolErpSMS.Services
                         // Table for this specific grade
                         col.Item().Table(table =>
                         {
-                            bool isSeniorSecondary = grade.Section == SchoolSection.SecondarySenior;
+                            bool isSeniorSecondary = grade.Section == SchoolSection.LegacySecondary;
                             
                             // Define columns: Student Name + (Subjects) + Total + (Points for Senior Secondary only) + Certificate + Position
                             table.ColumnsDefinition(columns =>

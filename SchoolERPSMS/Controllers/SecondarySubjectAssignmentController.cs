@@ -33,8 +33,8 @@ namespace SchoolErpSMS.Controllers
                     .Include(s => s.Grade)
                     .Include(s => s.StudentSubjects)
                         .ThenInclude(ss => ss.Subject)
-                    .Where(s => s.Grade.Section == SchoolSection.SecondaryJunior || 
-                               s.Grade.Section == SchoolSection.SecondarySenior);
+                    .Where(s => s.Grade.Section == SchoolSection.NeoSecondary || 
+                               s.Grade.Section == SchoolSection.LegacySecondary);
 
                 if (!string.IsNullOrEmpty(search))
                 {
@@ -117,8 +117,8 @@ namespace SchoolErpSMS.Controllers
                 }
 
                 // Check if student is in secondary section
-                if (student.Grade?.Section != SchoolSection.SecondaryJunior && 
-                    student.Grade?.Section != SchoolSection.SecondarySenior)
+                if (student.Grade?.Section != SchoolSection.NeoSecondary && 
+                    student.Grade?.Section != SchoolSection.LegacySecondary)
                 {
                     return BadRequest(new ApiResponse<List<StudentSubjectDto>>
                     {
@@ -225,8 +225,8 @@ namespace SchoolErpSMS.Controllers
                 }
 
                 // Check if student is in secondary section
-                if (student.Grade?.Section != SchoolSection.SecondaryJunior && 
-                    student.Grade?.Section != SchoolSection.SecondarySenior)
+                if (student.Grade?.Section != SchoolSection.NeoSecondary && 
+                    student.Grade?.Section != SchoolSection.LegacySecondary)
                 {
                     return BadRequest(new ApiResponse<StudentSubjectDto>
                     {
@@ -346,8 +346,8 @@ namespace SchoolErpSMS.Controllers
                 }
 
                 // Check if student is in secondary section
-                if (student.Grade?.Section != SchoolSection.SecondaryJunior && 
-                    student.Grade?.Section != SchoolSection.SecondarySenior)
+                if (student.Grade?.Section != SchoolSection.NeoSecondary && 
+                    student.Grade?.Section != SchoolSection.LegacySecondary)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
@@ -420,8 +420,8 @@ namespace SchoolErpSMS.Controllers
                         }
 
                         // Check if student is in secondary section
-                        if (student.Grade?.Section != SchoolSection.SecondaryJunior && 
-                            student.Grade?.Section != SchoolSection.SecondarySenior)
+                        if (student.Grade?.Section != SchoolSection.NeoSecondary && 
+                            student.Grade?.Section != SchoolSection.LegacySecondary)
                         {
                             results.Add(new BulkAssignmentResult
                             {

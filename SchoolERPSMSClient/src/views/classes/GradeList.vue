@@ -45,17 +45,31 @@
     </div>
     
     <div class="mb-2">
-    <label for="section">Section</label>
-    <Dropdown 
-      id="section" 
-      v-model="newGrade.section" 
-      :options="sectionOptions" 
-      optionLabel="label"
-      optionValue="value"
-      placeholder="Select section"
-      class="w-full"
-    />
-  </div>
+      <label for="section">Section</label>
+      <Dropdown 
+        id="section" 
+        v-model="newGrade.section" 
+        :options="sectionOptions" 
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select section"
+        class="w-full"
+      />
+      <small class="text-500">Form 1–6: NeoSecondary; Grade 8–12: LegacySecondary</small>
+    </div>
+
+    <div class="mb-2">
+      <label for="level">Level (for ordering)</label>
+      <InputNumber 
+        id="level" 
+        v-model="newGrade.level" 
+        :min="11" 
+        :max="14" 
+        placeholder="e.g. 12 for Form 2"
+        class="w-full"
+      />
+      <small class="text-500">Form 1 = 11, Form 2 = 12, Form 3 = 13, Grade 10–12 = 12–14</small>
+    </div>
   </div>
 
   <div class="mb-4">
@@ -460,19 +474,19 @@ const loadTeachers = async () => {
   }
 }
 
+// Backend enum: NeoSecondary = 4 (Form 1-6), LegacySecondary = 5 (Grade 8-12)
 const sectionOptions = ref([
-  { label: 'Preschool', value: 0 },
-  { label: 'Primary', value: 1 },
-  { label: 'Secondary', value: 2 }
+  { label: 'NeoSecondary (Form 1 - 6)', value: 4 },
+  { label: 'LegacySecondary (Grade 8 - 12)', value: 5 }
 ])
 
-// Form data
+// Form data (section = Secondary Junior, level = 12 for Form 2)
 const newGrade = reactive({
   name: '',
   fullName: '',
   stream: null,
-  section: 0,
-  level: 1,
+  section: 4,
+  level: 12,
   isActive: true,
   homeroomTeacherId: null
 })
@@ -517,8 +531,8 @@ const showAddGradeDialog = () => {
     name: '',
     fullName: '',
     stream: null,
-    section: 0,
-    level: 1,
+    section: 4,
+    level: 12,
     homeroomTeacherId: null,
     isActive: true
   })

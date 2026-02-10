@@ -366,26 +366,23 @@ namespace SchoolErpSMS.Data
             // Seed some grades
             
             modelBuilder.Entity<Grade>().HasData(
-                // SECONDARY SECTION 
-                // Form 1: W, X, Y (3 streams)
-                new Grade { Id = 1, Name = "Form 1", Stream = "W", Level = 11, Section = SchoolSection.SecondaryJunior},
-                new Grade { Id = 2, Name = "Form 1", Stream = "X", Level = 11, Section = SchoolSection.SecondaryJunior},
-                new Grade { Id = 3, Name = "Form 1", Stream = "Y", Level = 11, Section = SchoolSection.SecondaryJunior},
-                // Grade 10: V, W, X, Y (4 streams)
-                new Grade { Id = 4, Name = "Grade 10", Stream = "V", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 5, Name = "Grade 10", Stream = "W", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 6, Name = "Grade 10", Stream = "X", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 7, Name = "Grade 10", Stream = "Y", Level = 12, Section = SchoolSection.SecondarySenior},
-                // Grade 11: V, W, X, Y (4 streams)
-                new Grade { Id = 8, Name = "Grade 11", Stream = "V", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 9, Name = "Grade 11", Stream = "W", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 10, Name = "Grade 11", Stream = "X", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 11, Name = "Grade 11", Stream = "Y", Level = 13, Section = SchoolSection.SecondarySenior},
-                // Grade 12: V, W, X, Y (4 streams)
-                new Grade { Id = 12, Name = "Grade 12", Stream = "V", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 13, Name = "Grade 12", Stream = "W", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 14, Name = "Grade 12", Stream = "X", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 15, Name = "Grade 12", Stream = "Y", Level = 14, Section = SchoolSection.SecondarySenior}
+                // NeoSecondary (Form 1 - 6)
+                new Grade { Id = 1, Name = "Form 1", Stream = "W", Level = 11, Section = SchoolSection.NeoSecondary},
+                new Grade { Id = 2, Name = "Form 1", Stream = "X", Level = 11, Section = SchoolSection.NeoSecondary},
+                new Grade { Id = 3, Name = "Form 1", Stream = "Y", Level = 11, Section = SchoolSection.NeoSecondary},
+                // LegacySecondary (Grade 8 - 12)
+                new Grade { Id = 4, Name = "Grade 10", Stream = "V", Level = 12, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 5, Name = "Grade 10", Stream = "W", Level = 12, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 6, Name = "Grade 10", Stream = "X", Level = 12, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 7, Name = "Grade 10", Stream = "Y", Level = 12, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 8, Name = "Grade 11", Stream = "V", Level = 13, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 9, Name = "Grade 11", Stream = "W", Level = 13, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 10, Name = "Grade 11", Stream = "X", Level = 13, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 11, Name = "Grade 11", Stream = "Y", Level = 13, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 12, Name = "Grade 12", Stream = "V", Level = 14, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 13, Name = "Grade 12", Stream = "W", Level = 14, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 14, Name = "Grade 12", Stream = "X", Level = 14, Section = SchoolSection.LegacySecondary},
+                new Grade { Id = 15, Name = "Grade 12", Stream = "Y", Level = 14, Section = SchoolSection.LegacySecondary}
 
                 
                 

@@ -37,25 +37,14 @@ namespace SchoolErpSMS.Entities
 
     }
 
- public enum SchoolSection
-{
-    EarlyLearningBeginner = 0,
-    EarlyLearningIntermediate = 1,
-    PrimaryLower = 2,
-    PrimaryUpper = 3,
-    SecondaryJunior = 4,
-    SecondarySenior = 5
-}
-
-    
-    // public enum SchoolSection
-    // {
-    //     Preschool = 0,
-    //     Primary = 1,
-    //     Secondary = 2,
-    //     UpperPrimary = 3,
-    //     SeniorSecondary = 4
-    // }
+    /// <summary>
+    /// Form 1-6 = NeoSecondary; Grade 8-12 = LegacySecondary.
+    /// </summary>
+    public enum SchoolSection
+    {
+        NeoSecondary = 4,   // Form 1 - 6
+        LegacySecondary = 5 // Grade 8 - 12
+    }
 
 
  
