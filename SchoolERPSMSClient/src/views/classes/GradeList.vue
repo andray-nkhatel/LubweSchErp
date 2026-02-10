@@ -28,6 +28,21 @@
         placeholder="Enter full grade name"
       />
     </div>
+
+    <div class="mb-2">
+      <label for="stream">Stream <span class="text-red-500">*</span></label>
+      <Dropdown 
+        id="stream" 
+        v-model="newGrade.stream" 
+        :options="streamOptions" 
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select stream"
+        class="w-full"
+        :class="{ 'p-invalid': submittedAdd && !newGrade.stream }"
+      />
+      <small v-if="submittedAdd && !newGrade.stream" class="p-error">Stream is required.</small>
+    </div>
     
     <div class="mb-2">
     <label for="section">Section</label>
@@ -455,20 +470,19 @@ const sectionOptions = ref([
 const newGrade = reactive({
   name: '',
   fullName: '',
-  stream: '',
+  stream: null,
   section: 0,
   level: 1,
   isActive: true,
   homeroomTeacherId: null
 })
 
-// Stream options for dropdown
+// Stream options for dropdown (V, W, X, Y)
 const streamOptions = ref([
-  'Green',
-  'Orange', 
-  'Purple',
-  'Grey',
-  'Blue'
+  { label: 'V', value: 'V' },
+  { label: 'W', value: 'W' },
+  { label: 'X', value: 'X' },
+  { label: 'Y', value: 'Y' }
 ])
 
 // Emits (you can remove these if not needed)
@@ -492,14 +506,17 @@ const selectedGrade = ref(null)
 const streamColors = ['info', 'success', 'warn', 'danger', 'secondary']
 
 // Dialog functions
+const submittedAdd = ref(false)
+
 const showAddGradeDialog = () => {
   addGradeDialogVisible.value = true
+  submittedAdd.value = false
   loadTeachers() 
   // Reset form
   Object.assign(newGrade, {
     name: '',
     fullName: '',
-    stream: '',
+    stream: null,
     section: 0,
     level: 1,
     homeroomTeacherId: null,
@@ -574,15 +591,16 @@ const cancelAdd = () => {
 }
 
 const saveGrade = async () => {
+  submittedAdd.value = true
   saving.value = true
   
   try {
-    // Validate required fields
-    if (!newGrade.name || !newGrade.fullName || !newGrade.section) {
+    // Validate required fields (name, fullName, stream, section)
+    if (!newGrade.name || !newGrade.fullName || !newGrade.stream || newGrade.section === undefined || newGrade.section === null) {
       toast.add({
         severity: 'warn',
         summary: 'Validation Error',
-        detail: 'Please fill in all required fields',
+        detail: 'Please fill in all required fields (Grade Name, Full Name, Stream, Section)',
         life: 3000
       })
       return
