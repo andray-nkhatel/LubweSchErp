@@ -71,15 +71,10 @@ namespace SchoolErpSMS.Services
                         }
                         else
                         {
-                            // No migrations available - use EnsureCreated
+                            // No migrations available - use EnsureCreated (do not drop DB; that would make SchoolDB invalid and break connections)
                             _logger.LogInformation("No migrations found. Using EnsureCreated to create database schema...");
-                            
-                            // Drop and recreate database to ensure clean state
                             try
                             {
-                                _logger.LogInformation("Dropping existing database to ensure clean state...");
-                                await _context.Database.EnsureDeletedAsync();
-                                _logger.LogInformation("Database dropped. Recreating...");
                                 await _context.Database.EnsureCreatedAsync();
                                 _logger.LogInformation("EnsureCreated completed. Verifying tables...");
                             }
