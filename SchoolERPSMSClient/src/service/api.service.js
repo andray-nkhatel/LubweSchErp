@@ -1176,9 +1176,11 @@ async bulkMarkAbsent(data) {
   // Get students by grade - CORRECTED ENDPOINT PATH
   async getStudentsByGrade(gradeId) {
     const response = await apiClient.get(`/students/grade/${gradeId}`);
-    // Some endpoints return ApiResponse { data: [...] }, others return raw arrays
+    // Handle ApiResponse { data: [...] } or { Data: [...] }, or raw array
     const payload = response.data;
-    return Array.isArray(payload) ? payload : (payload?.data ?? []);
+    if (Array.isArray(payload)) return payload;
+    const list = payload?.data ?? payload?.Data;
+    return Array.isArray(list) ? list : [];
   },
 
   // ===== EXAM TYPE ENDPOINTS =====

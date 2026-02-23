@@ -263,7 +263,7 @@ namespace SchoolErpSMS.Controllers
 
             if (!isSubjectInGrade)
             {
-                throw new InvalidOperationException("Cannot assign teacher: subject is not part of this grade's curriculum.");
+                return BadRequest(new { message = "Subject is not part of this grade's curriculum. Add the subject to the class first via Academic → Bulk Assign to Class, then assign the teacher here." });
             }
 
             var existingAssignment = await _context.TeacherSubjectAssignments
@@ -323,6 +323,15 @@ namespace SchoolErpSMS.Controllers
                     if (grade == null)
                     {
                         errors.Add($"Grade with ID {assignment.GradeId} not found");
+                        continue;
+                    }
+
+                    // Subject must be assigned to the grade first (GradeSubjects); otherwise teachers cannot enter marks
+                    var isSubjectInGrade = await _context.GradeSubjects
+                        .AnyAsync(gs => gs.GradeId == assignment.GradeId && gs.SubjectId == assignment.SubjectId && gs.IsActive);
+                    if (!isSubjectInGrade)
+                    {
+                        errors.Add($"{subject.Name} is not assigned to {grade.Name}. Add it via Academic → Bulk Assign to Class first, then assign teachers here.");
                         continue;
                     }
 
@@ -460,7 +469,25 @@ public class SubjectGradeDto
             }
 
             var newGradeIds = assignDto.GradeIds.Except(existingAssignments).ToList();
-            var assignments = newGradeIds.Select(gradeId => new TeacherSubjectAssignment
+            // Only allow grades where this subject is in the grade curriculum (GradeSubjects)
+            var gradeIdsWithSubject = await _context.GradeSubjects
+                .Where(gs => gs.SubjectId == subjectId && newGradeIds.Contains(gs.GradeId) && gs.IsActive)
+                .Select(gs => gs.GradeId)
+                .ToListAsync();
+            var missingGrades = newGradeIds.Except(gradeIdsWithSubject).ToList();
+            if (missingGrades.Any())
+            {
+                var missingNames = await _context.Grades
+                    .Where(g => missingGrades.Contains(g.Id))
+                    .Select(g => g.FullName ?? g.Name)
+                    .ToListAsync();
+                return BadRequest(new
+                {
+                    message = "Subject is not part of the curriculum for some selected grades. Add the subject to those classes first via Academic → Bulk Assign to Class.",
+                    gradesWithoutSubject = missingNames
+                });
+            }
+            var assignments = gradeIdsWithSubject.Select(gradeId => new TeacherSubjectAssignment
             {
                 TeacherId = assignDto.TeacherId,
                 SubjectId = subjectId,

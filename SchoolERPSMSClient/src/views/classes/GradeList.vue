@@ -8,25 +8,16 @@
   :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
 >
   <div class="">
-    <!-- Grade form fields -->
+    <!-- Grade form fields: Name = level only (e.g. Form 2). Full name is auto Name + Stream. -->
     <div class="mb-3">
-      <label for="gradeName">Grade Name</label>
+      <label for="gradeName">Grade Name <span class="text-red-500">*</span></label>
       <InputText 
         id="gradeName" 
         class="w-full"
         v-model="newGrade.name" 
-        placeholder="Enter grade name"
+        placeholder="e.g. Form 2 or Grade 10 (level only, no stream)"
       />
-    </div>
-    
-    <div class="mb-2">
-      <label for="fullName">Full Name</label>
-      <InputText 
-        class="w-full"
-        id="fullName" 
-        v-model="newGrade.fullName" 
-        placeholder="Enter full grade name"
-      />
+      <small class="text-500">Enter the level only. Do not include the stream (V, W, X, Y) — it is selected below.</small>
     </div>
 
     <div class="mb-2">
@@ -42,6 +33,14 @@
         :class="{ 'p-invalid': submittedAdd && !newGrade.stream }"
       />
       <small v-if="submittedAdd && !newGrade.stream" class="p-error">Stream is required.</small>
+    </div>
+
+    <div class="mb-2" v-if="newGrade.name || newGrade.stream">
+      <label class="text-500">Full name (auto)</label>
+      <div class="p-2 surface-100 border-round text-900 font-medium">
+        {{ (newGrade.name || '').trim() }}{{ newGrade.stream ? ' ' + newGrade.stream : '' }} {{ !newGrade.name && !newGrade.stream ? '—' : '' }}
+      </div>
+      <small class="text-500">Displayed in lists; computed from Grade Name + Stream.</small>
     </div>
     
     <div class="mb-2">
@@ -480,10 +479,9 @@ const sectionOptions = ref([
   { label: 'LegacySecondary (Grade 8 - 12)', value: 5 }
 ])
 
-// Form data (section = Secondary Junior, level = 12 for Form 2)
+// Form data (section = NeoSecondary default, level = 12 for Form 2)
 const newGrade = reactive({
   name: '',
-  fullName: '',
   stream: null,
   section: 4,
   level: 12,
@@ -529,7 +527,6 @@ const showAddGradeDialog = () => {
   // Reset form
   Object.assign(newGrade, {
     name: '',
-    fullName: '',
     stream: null,
     section: 4,
     level: 12,
@@ -609,25 +606,32 @@ const saveGrade = async () => {
   saving.value = true
   
   try {
-    // Validate required fields (name, fullName, stream, section)
-    if (!newGrade.name || !newGrade.fullName || !newGrade.stream || newGrade.section === undefined || newGrade.section === null) {
+    // Validate required fields (name, stream, section)
+    if (!newGrade.name || !newGrade.stream || newGrade.section === undefined || newGrade.section === null) {
       toast.add({
         severity: 'warn',
         summary: 'Validation Error',
-        detail: 'Please fill in all required fields (Grade Name, Full Name, Stream, Section)',
+        detail: 'Please fill in Grade Name, Stream, and Section',
         life: 3000
       })
       return
     }
 
-    // Prepare grade data
+    // Ensure name does not already end with the stream (backend computes FullName = Name + " " + Stream)
+    let nameToSend = (newGrade.name || '').trim()
+    const streamToSend = newGrade.stream
+    if (streamToSend && nameToSend.endsWith(' ' + streamToSend)) {
+      nameToSend = nameToSend.slice(0, -(streamToSend.length + 1)).trim()
+    }
+
+    // Prepare grade data (backend uses name + stream; FullName is computed server-side)
     const gradeData = {
       ...newGrade,
-      studentCount: 0, // Default value
+      name: nameToSend,
+      studentCount: 0,
       createdAt: new Date().toISOString()
     }
     
-    // Call API to save grade
     const savedGrade = await gradeService.create(gradeData)
     
     // Add to local grades array
@@ -640,7 +644,7 @@ const saveGrade = async () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: `Grade "${newGrade.name}${newGrade.stream ? ' ' + newGrade.stream : ''}" has been created successfully`,
+      detail: `Grade "${savedGrade.fullName || nameToSend + ' ' + streamToSend}" created successfully`,
       life: 3000
     })
     

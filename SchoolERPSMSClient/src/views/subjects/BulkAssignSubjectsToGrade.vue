@@ -283,6 +283,12 @@ export default {
           detail: detailMessage,
           life: 5000
         })
+        this.$toast.add({
+          severity: 'info',
+          summary: 'Next step',
+          detail: 'Assign teachers to these subject–grade pairs via Academic → Teacher Assignments so they can enter marks.',
+          life: 8000
+        })
 
         this.resetForm()
         this.$emit('assignment-created')

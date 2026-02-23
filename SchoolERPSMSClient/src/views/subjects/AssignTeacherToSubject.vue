@@ -1,5 +1,11 @@
 <template>
   <div class="assign-teacher-subject mb-4">
+    <Message severity="info" :closable="false" class="mb-3">
+      <strong>Teachers can enter marks only after you assign them here.</strong>
+      Ensure each class has subjects assigned first via
+      <RouterLink to="/app/subject-grade/bulk-assign">Academic → Bulk Assign to Class</RouterLink>;
+      then assign teachers to each subject–grade pair on this page.
+    </Message>
     <AssignTeacherForm
       :teachers="teachers"
       :subjects="subjects"
@@ -17,7 +23,9 @@
 <script setup>
 import { useTeacherAssignments } from '@/composables/useTeacherAssignments'
 import { subjectService } from '@/service/api.service'
+import Message from 'primevue/message'
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import AssignmentResultsModal from './AssignmentResultsModal.vue'
 import AssignTeacherForm from './AssignTeacherForm.vue'
 import RecentAssignmentsTable from './RecentAssignmentsTable.vue'

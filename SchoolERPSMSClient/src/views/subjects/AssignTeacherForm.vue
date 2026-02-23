@@ -291,7 +291,7 @@ async function handleSubmit() {
     console.log('➕ To assign:', toAssign)
     console.log('➖ To unassign:', toUnassign)
     
-    // Assign new
+    let assignedCount = 0
     if (toAssign.length > 0) {
       const newAssignments = toAssign.map(pair => {
         const [subjectId, gradeId] = pair.split('|').map(Number)
@@ -302,8 +302,16 @@ async function handleSubmit() {
         }
       })
       console.log('📤 Sending new assignments:', newAssignments)
-      await subjectService.bulkAssignTeachersToSubjects({ assignments: newAssignments })
-      console.log('✅ Bulk assignment successful')
+      const bulkResult = await subjectService.bulkAssignTeachersToSubjects({ assignments: newAssignments })
+      assignedCount = bulkResult?.successful ?? newAssignments.length
+      const errs = bulkResult?.errors || []
+      if (errs.length > 0) {
+        const detail = errs.slice(0, 3).join('. ') + (errs.length > 3 ? ` (and ${errs.length - 3} more)` : '')
+        if (window.$toast) {
+          window.$toast.add({ severity: 'warn', summary: 'Some assignments skipped', detail, life: 8000 })
+        }
+      }
+      console.log('✅ Bulk assignment response:', bulkResult)
     }
     // Unassign removed
     for (const a of toUnassign) {
@@ -322,7 +330,7 @@ async function handleSubmit() {
     await new Promise(resolve => setTimeout(resolve, 500))
     
     // Show success message
-    const message = `${toAssign.length > 0 ? `${toAssign.length} assignment(s) created` : ''}${toAssign.length > 0 && toUnassign.length > 0 ? ', ' : ''}${toUnassign.length > 0 ? `${toUnassign.length} assignment(s) removed` : ''}`
+    const message = `${assignedCount > 0 ? `${assignedCount} assignment(s) created` : ''}${assignedCount > 0 && toUnassign.length > 0 ? ', ' : ''}${toUnassign.length > 0 ? `${toUnassign.length} assignment(s) removed` : ''}`
     
     // Try multiple toast methods
     if (window.$toast) {

@@ -98,6 +98,14 @@
                 </div>
               </template>
             </Select>
+            <small
+              v-if="!loadingAssignments && teacherAssignments.length === 0"
+              class="block mt-1 text-amber-700 dark:text-amber-400"
+            >
+              No subject/grade assigned to you yet. Admin or Staff must assign you: first add subjects to the class via
+              <RouterLink to="/app/subject-grade/bulk-assign" class="font-semibold underline">Bulk Assign to Class</RouterLink>, then assign you via
+              <RouterLink to="/app/teacher-subject/assignments" class="font-semibold underline">Teacher Assignments</RouterLink>.
+            </small>
           </div>
           <div class="flex-1 min-w-[180px]">
             <label for="academicYear" class="block font-semibold mb-2 text-900">Academic Year *</label>
@@ -1340,9 +1348,11 @@
 <script>
 import { examService, gradeService, homeroomService, markScheduleService, reportService, secondarySubjectService } from '@/service/api.service';
 import { babyClassSkillService } from '@/service/BabyClassSkillService';
+import { RouterLink } from 'vue-router';
 
 export default {
   name: 'ScoreEntryWithAbsent',
+  components: { RouterLink },
 
   data() {
     return {
@@ -2713,8 +2723,8 @@ export default {
  
          // Determine gradeId for Baby Class via homeroom when assignment is not selected
          const gradeId = this.isBabyMode
-           ? (this.selectedAssignment?.gradeId || (await this.resolveHomeroomGradeId()))
-           : this.selectedAssignment.gradeId
+           ? (this.selectedAssignment?.gradeId ?? this.selectedAssignment?.GradeId || (await this.resolveHomeroomGradeId()))
+           : (this.selectedAssignment?.gradeId ?? this.selectedAssignment?.GradeId)
  
          if (!gradeId) {
            // If gradeId still not found, show a friendly warning and return silently
@@ -2730,15 +2740,15 @@ export default {
          const gradeStudents = await examService.getStudentsByGrade(gradeId)
  
          if (gradeStudents.length === 0) {
-           this.showInfo('No students found in the selected grade')
-           // Secondary classes: show guidance toast to contact homeroom teacher/admin
-          if (this.isSecondaryClass) {
-            let homeroomName = 'Homeroom Teacher'
+           this.showInfo('No students in this grade yet.')
+           let homeroomName = 'the class teacher'
             try {
-              // Prefer precise grade info to get homeroom teacher name
-              const grade = await gradeService.getById(this.selectedAssignment.gradeId)
-              const g = grade?.data ?? grade
-              homeroomName = g?.homeroomTeacherName || g?.HomeroomTeacherName || homeroomName
+              const aid = this.selectedAssignment?.gradeId ?? this.selectedAssignment?.GradeId
+              if (aid) {
+                const grade = await gradeService.getById(aid)
+                const g = grade?.data ?? grade
+                homeroomName = g?.homeroomTeacherName || g?.HomeroomTeacherName || homeroomName
+              }
             } catch (_) {
               try {
                 // Fallback to homeroom grade info if accessible
@@ -2748,15 +2758,14 @@ export default {
               } catch (_) {}
             }
              this.$toast.add({
-               severity: 'warn',
-               summary: 'No students assigned',
-               detail: `Contact admin or ${homeroomName} to assign students to your subject for this class.`,
-               life: 8000
+               severity: 'info',
+               summary: 'No students in this class',
+               detail: `Ask admin or ${homeroomName} to assign students to this class (e.g. when promoting or enrolling).`,
+               life: 6000
              })
-           }
            return
          }
- 
+
          if (this.isBabyMode) {
            // Load skill assessments for BabyClass
            await this.loadBabyClassAssessments(gradeStudents, gradeId);
@@ -2797,35 +2806,41 @@ export default {
             score.examTypeId === this.selectedExamType
           )
 
-          // For secondary classes, filter students to only those enrolled in the selected subject
+          // For secondary classes, filter to students enrolled in the selected subject.
+          // When classwise subjects are assigned (Bulk Assign / sync), StudentSubject records exist
+          // so we only filter when we successfully get a subject list; on API error we include the student.
+          const subjectId = this.selectedAssignment?.subjectId ?? this.selectedAssignment?.SubjectId;
           let enrolledIdSet = null;
           if (this.isSecondaryClass) {
             try {
               const checks = await Promise.all(
-                gradeStudents.map(async s => {
+                gradeStudents.map(async (s) => {
+                  const sid = s.id ?? s.Id;
                   try {
-                    const subs = await secondarySubjectService.getStudentSubjects(s.id);
-                    const list = Array.isArray(subs) ? subs : (subs?.data ?? []);
-                    const enrolled = list.some(sub => (sub.subjectId ?? sub.id) === this.selectedAssignment.subjectId);
-                    return { id: s.id, enrolled };
+                    const raw = await secondarySubjectService.getStudentSubjects(sid);
+                    const arr = Array.isArray(raw) ? raw : (raw?.data ?? raw?.Data ?? []);
+                    const enrolled = arr.some(sub => (sub.subjectId ?? sub.id ?? sub.SubjectId) == subjectId);
+                    return { id: sid, enrolled };
                   } catch (_) {
-                    return { id: s.id, enrolled: false };
+                    // API error (e.g. "only for secondary") or missing data: include student so classwise-assigned aren't hidden
+                    return { id: sid, enrolled: true };
                   }
                 })
               );
               enrolledIdSet = new Set(checks.filter(c => c.enrolled).map(c => c.id));
             } catch (e) {
-              // If enrollment check fails, fall back to showing all
               enrolledIdSet = null;
             }
           }
 
+          const studentId = (s) => s.id ?? s.Id;
           this.students = gradeStudents
-            .filter(s => !this.isSecondaryClass || (enrolledIdSet ? enrolledIdSet.has(s.id) : true))
+            .filter(s => !this.isSecondaryClass || (enrolledIdSet ? enrolledIdSet.has(studentId(s)) : true))
             .map(student => {
-            const existingScore = relevantScores.find(score => score.studentId === student.id)
+            const sid = student.id ?? student.Id
+            const existingScore = relevantScores.find(score => score.studentId === sid)
             return {
-              studentId: student.id,
+              studentId: sid,
               studentName: this.formatStudentLastNameFirst(student),
               studentFirstName: student.firstName ?? student.FirstName,
               studentLastName: student.lastName ?? student.LastName,
@@ -2846,7 +2861,7 @@ export default {
           if (this.isSecondaryClass && this.students.length === 0) {
             let homeroomName = 'Homeroom Teacher'
             try {
-              const grade = await gradeService.getById(this.selectedAssignment.gradeId)
+              const grade = await gradeService.getById(this.selectedAssignment?.gradeId ?? this.selectedAssignment?.GradeId)
               const g = grade?.data ?? grade
               homeroomName = g?.homeroomTeacherName || g?.HomeroomTeacherName || homeroomName
             } catch (_) {
@@ -2856,10 +2871,11 @@ export default {
                 homeroomName = data?.homeroomTeacherName || data?.homeroomTeacher || homeroomName
               } catch (_) {}
             }
+            const subjName = this.selectedAssignment?.subjectName ?? this.selectedAssignment?.SubjectName ?? 'this subject'
             this.$toast.add({
-              severity: 'warn',
-              summary: 'No students assigned',
-              detail: `Contact admin or ${homeroomName} to assign students to your subject for this class.`,
+              severity: 'info',
+              summary: 'No students enrolled in ' + subjName,
+              detail: `Students are in this class but none are enrolled in ${subjName}. Ask admin or ${homeroomName} to assign students to this subject.`,
               life: 8000
             })
           }
@@ -4182,12 +4198,12 @@ export default {
             const checks = await Promise.all(
               gradeStudents.map(async s => {
                 try {
-                  const subs = await secondarySubjectService.getStudentSubjects(s.id)
-                  const list = Array.isArray(subs) ? subs : (subs?.data ?? [])
-                  const enrolled = list.some(sub => (sub.subjectId ?? sub.id) === this.selectedAssignment.subjectId)
-                  return { id: s.id, enrolled }
+                  const raw = await secondarySubjectService.getStudentSubjects(s.id ?? s.Id)
+                  const list = Array.isArray(raw) ? raw : (raw?.data ?? raw?.Data ?? [])
+                  const enrolled = list.some(sub => (sub.subjectId ?? sub.id ?? sub.SubjectId) == (this.selectedAssignment?.subjectId ?? this.selectedAssignment?.SubjectId))
+                  return { id: s.id ?? s.Id, enrolled }
                 } catch (_) {
-                  return { id: s.id, enrolled: false }
+                  return { id: s.id ?? s.Id, enrolled: true }
                 }
               })
             )
@@ -4255,9 +4271,9 @@ export default {
           for (const studentId of this.addStudentsDialog.selectedStudentIds) {
             try {
               // Check if already enrolled
-              const subs = await secondarySubjectService.getStudentSubjects(studentId)
-              const list = Array.isArray(subs) ? subs : (subs?.data ?? [])
-              const alreadyEnrolled = list.some(sub => (sub.subjectId ?? sub.id) === subjectId)
+              const raw = await secondarySubjectService.getStudentSubjects(studentId)
+              const list = Array.isArray(raw) ? raw : (raw?.data ?? raw?.Data ?? [])
+              const alreadyEnrolled = list.some(sub => (sub.subjectId ?? sub.id ?? sub.SubjectId) == subjectId)
               
               if (!alreadyEnrolled) {
                 // Enroll the student in the subject
